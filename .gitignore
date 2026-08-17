@@ -1,0 +1,17 @@
+# OS / filesystem cruft
+Thumbs.db
+desktop.ini
+.DS_Store
+$RECYCLE.BIN/
+
+# Editor / IDE
+.vscode/
+.idea/
+*.swp
+*~
+
+# PHP / server logs & caches
+*.log
+error_log
+*.cache
+

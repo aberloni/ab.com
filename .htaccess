@@ -1,0 +1,28 @@
+#Header set X-Frame-Options DENY
+#Header always append X-Frame-Options SAMEORIGIN
+
+# block access to any .env file, wherever it lives
+<FilesMatch "^\.env">
+  <IfModule mod_authz_core.c>
+    Require all denied
+  </IfModule>
+  <IfModule !mod_authz_core.c>
+    Order allow,deny
+    Deny from all
+  </IfModule>
+</FilesMatch>
+
+RewriteEngine On
+
+RewriteRule ^(temp)($|/) - [L]
+
+#si pas un fichier spécifique
+RewriteCond %{REQUEST_FILENAME} !-f
+
+#si pas un dossier spécifique
+RewriteCond %{REQUEST_FILENAME} !-d
+
+#si pas index.html explicitement
+RewriteCond %{REQUEST_URI} !index\.html
+
+RewriteRule ^(.+)$ /index.html#$1 [QSA,L]
