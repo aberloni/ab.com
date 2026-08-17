@@ -1,0 +1,296 @@
+/*@import "css-reset.css";*/
+
+body{
+  font-size:16px;
+  margin:0px;
+  padding:0px;
+  font-family:Oswald, Courier New;
+  background-color:#fff;
+  color:#fff;
+  text-align:center;
+}
+
+a{
+  text-decoration:none;
+  color:#fff;
+}
+
+p{ margin-top:16px;padding:0px; }
+
+#all{
+  font-family:"Open Sans";
+  font-size:1em;
+  margin-top:50px;
+}
+
+#categories{
+  font-family:"Oswald";
+  margin:auto;
+  width:500px;
+}
+
+.category{
+  text-align:left;
+  display:block;
+  letter-spacing:1px;
+  line-height:60px;
+  font-size:3em;
+  color:#000;
+}
+.category:hover{
+  color:#b33 !important;
+}
+
+.category-item{
+  text-align:left;
+  font-size:1.1em;
+  height:25px;
+  display:block;
+}
+.category-item-selected{
+  color:#b33 !important;
+}
+
+.cat-line-sub{
+  min-width:30px;
+  color:#989898;
+}
+.cat-line-article{
+  color:#121212;
+}
+.cat-line-article:hover, .cat-line-sub:hover{
+  color:#b33 !important;
+}
+
+#overlay-bg{
+  background-color:#111;
+  opacity:0.98;
+  filter:alpha(opacity=98);
+  
+  display:block;
+  position:absolute;
+  top:0px;
+  right:0px;
+}
+
+#overlay-click{
+  /*background-color:#f33;*/
+  position:absolute;
+  top:0px;
+  left:0px;
+}
+
+#overlay{
+  color:#fff;
+  /*background-color:#d11;*/
+  display:block;
+  position:absolute;
+  top:20px;
+  right:0px;
+  padding:20px 20px;
+  
+  /* overlay-bg is based on overlay size (by JS) */
+  width:65%;
+  min-width:700px;
+}
+
+
+.searchZone{
+  margin:auto;
+  text-align: left;
+  width:500px;
+  height:35px;
+  line-height:35px;
+  margin-bottom: 10px;
+}
+
+#search{
+  background:url("design/icon_glass.png") no-repeat;
+  background-position: 5px 5px;
+  color:#BCBCBC;
+  border-style: solid;
+  margin-bottom:15px;
+  padding:5px 30px;
+  height:35px;
+  width:80%;
+}
+
+/* le container des articles pour le système de recherche */
+#filter{
+  display:none;
+  margin:20px auto;
+  width:500px;
+}
+#filter-link{
+  
+}
+
+
+#content{
+  font-family:"Open Sans";
+  text-align:left;
+  display:block;
+  font-size:1em;
+  line-height:1.5em;
+}
+
+#content img{
+  text-align: center;
+  max-width: 100%;
+  margin:auto;
+}
+
+#content a{
+  color:#aaa;
+}
+#content a:hover{
+  color:#d33;
+}
+
+#content-title{
+  text-align:left;
+  padding-left:30px;
+  font-size:3em;
+  font-weight:500;
+  width:700px;
+  letter-spacing:normal;
+  margin:50px 0px;
+}
+
+#contact{
+	padding:0px 50px;
+}
+
+.about-logo{
+  margin:5px auto;
+  text-align:center;
+  display:block;
+}
+.about-logo:hover{
+  border-style:solid;
+  border-width:5px;
+  margin:0px auto;
+}
+
+#olr-icon{
+  height:200px;
+  width:205px;
+  background:url("design/olr_square_200.png");
+}
+#olr-icon:hover{
+  border-color:#e84e0f;
+}
+
+#ad-icon{
+  width:300px;
+  height:94px;
+  background:url("design/ad-logo.png");
+}
+#ad-icon:hover{
+  border-color:#3d97d5;
+}
+
+.clear{
+	clear:both;
+}
+
+#contact-social{
+	width:300px;
+	/*background-color:#ff0;*/
+}
+
+.links{
+  margin-top:10px;
+}
+.link{
+	display:block;
+	width:20px;
+	height:20px;
+	background-size: 100% 100%;
+	float:left;
+	
+	margin-right:10px;
+}
+
+.link-important{
+  font-size:1.5em;
+  color:#e6d7a5;
+}
+
+#screenshots{
+  text-align:left;
+  width:700px;
+}
+
+.screenshot{
+	border-color:#fff;
+	border-style:none;
+	margin:2px;
+}
+
+.screenshot:hover{
+	border-width:1px;
+	border-style:solid;
+	margin:1px;
+}
+
+
+.category-title{
+  text-align:left;
+  margin:10px 0px 20px 10px;
+  font-size:1.2em;
+}
+.article-subtitle{
+  color:#9c9375;
+  font-size:1.2em;
+}
+.article-date{
+  font-family:"Verdana","Arial";
+  font-size:0.6em;
+  color:#DFDFDF;
+  margin-left:15px;
+}
+
+.pipe{
+  font-size:1.6em;
+  color:#8f8669;
+  margin-right:5px;
+}
+
+
+
+.social-line img{
+  float:left;
+  width:32px;
+  height:32px;
+  margin:0px;
+  margin-bottom:0px;
+  padding:0px;
+}
+
+.social-label{
+  float:left;
+  line-height: 32px;
+}
+
+
+/* BUILDER */
+
+#builder{
+  font-size:12px;
+  text-align: left;
+  margin-left:15px;
+  color:#010101;
+}
+.builder-cat{
+  color:#010101;
+  margin-left:15px;
+}
+.builder-cat-title{
+  color:#010101;
+  font-weight: bold;
+  font-size:2em;
+}
+.builder-cat-last{
+  margin:20px 0px;
+}

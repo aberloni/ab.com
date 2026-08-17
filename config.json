@@ -1,0 +1,25 @@
+{
+  "header":{
+    "title":"André Berlemont",
+    "charset":"UTF-8",
+    "description":"Website/Portfolio/Blog of André Berlemont",
+    "css":["css/css-index.css","plugins/hl-default.css"],
+    "fonts":["https://fonts.googleapis.com/css2?family=Open+Sans:ital,wght@0,300..800;1,300..800&family=Oswald:wght@200..700&display=swap"],
+    "js":["//code.jquery.com/jquery-3.7.1.min.js","js/js-index.js"],
+    "googleAnalytics":"UA-35938177-1"
+  },
+  "categories":[
+    {"cat":"code","title":"Code"},
+    {"cat":"unity","title":"Unity3D"},
+    {"cat":"olr","title":"One Life Remains"},
+    {"cat":"epicbros","title":"Epic Bros"},
+    {"cat":"notes","title":"Notes"},
+    {"cat":"misc","title":"Miscellaneous"},
+    {"cat":"freelance","title":"Freelance"},
+    {"cat":"littlethings","title":"Little Things"},
+    {"cat":"gamejam","title":"Game Jam"},
+    {"cat":"random","title":"Random projects"},
+    {"cat":"postm","title":"Post Mortem"}
+  ],
+  "fixed":["about"]
+}
