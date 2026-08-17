@@ -69,6 +69,8 @@
 
         $path = ROOT."pages/";
 
+        if(!is_dir($path.$outputFolder)) mkdir($path.$outputFolder, 0755, true);
+
         $items = getItems();
         $titles = [];
 

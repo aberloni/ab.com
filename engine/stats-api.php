@@ -56,7 +56,10 @@
   }
   
   function generateFile($fileName, $graphName, $xValues, $yValues){
-    $filePath = ROOT."stats/data_".$fileName.".js";
+    $statsDir = ROOT."stats/";
+    if(!is_dir($statsDir)) mkdir($statsDir, 0755, true);
+
+    $filePath = $statsDir."data_".$fileName.".js";
     $file = fopen($filePath, "w+");
     
     $xAxis = generateStringArray($xValues);
