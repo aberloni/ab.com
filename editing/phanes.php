@@ -12,18 +12,18 @@
     $postAction = $_POST["action"] ?? "save";
     $postFile = basename($_POST["file"] ?? "");
 
-    if($postFile === "" || !preg_match('/^[A-Za-z0-9_\-]+$/', $postFile)){
+    if($postAction === "reindex"){
+      $indexResult = generateIndex();
+      $message = "index.html : ".$indexResult["status"]." (".$indexResult["count"]." articles).";
+      $file = $postFile;
+      $action = ($file !== "") ? "edit" : "list";
+    } else if($postFile === "" || !preg_match('/^[A-Za-z0-9_\-]+$/', $postFile)){
       $message = "Nom de fichier invalide.";
     } else if($postAction === "delete"){
       $path = $pagesDir.$postFile.".md";
       if(file_exists($path)) unlink($path);
       $message = "Article supprimé : ".$postFile;
       $action = "list";
-    } else if($postAction === "reindex"){
-      $indexResult = generateIndex();
-      $message = "index.html : ".$indexResult["status"]." (".$indexResult["count"]." articles).";
-      $file = $postFile;
-      $action = ($file !== "") ? "edit" : "list";
     } else {
       // save the source, then build the html page + refresh stats/rss, same as builder.php does per article
       $content = $_POST["content"] ?? "";
@@ -138,6 +138,10 @@
 
 <div class="sidebar">
   <h1>Phanes — <?php echo count($items); ?> articles</h1>
+  <form method="post" style="padding:0 14px 14px;">
+    <input type="hidden" name="action" value="reindex">
+    <button type="submit" style="width:100%;">Régénérer l'index seul</button>
+  </form>
   <ul>
   <?php foreach($items as $item): ?>
     <li>
@@ -166,6 +170,11 @@
     <input type="hidden" name="file" value="<?php echo htmlspecialchars($file); ?>">
     <textarea name="content"><?php echo htmlspecialchars(readArticle($pagesDir, $file)); ?></textarea><br>
     <button type="submit">Update</button>
+  </form>
+  <form method="post" style="display:inline;">
+    <input type="hidden" name="action" value="reindex">
+    <input type="hidden" name="file" value="<?php echo htmlspecialchars($file); ?>">
+    <button type="submit">Régénérer l'index seul</button>
   </form>
 
 <?php elseif($action === "new"): ?>
