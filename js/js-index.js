@@ -12,25 +12,14 @@ $(function(){
 
   //set website color (random)
   setPalette();
-  
-  //hide categories articles
-  $(".links").hide();
-  
+
   //remove article from screen
   hideOverlay(0);
-  
+
   setup__interactivity();
 
-  //articles related
-	//$(".content-toggle").not(".code").hide(); // hide toggle content that is not code
-  
-  //if(article) open menu at this article
-  openParentCategory(); // will open article
-
-  //console.log(getFileDateFromUrl());
-
   display_article();
-  
+
   $("#search").select();
 });
 
@@ -38,7 +27,7 @@ function display_article(){
   var date = getFileDateFromUrl();
   if(date.length <= 0) return;
 
-  var path = "pages/html/"+date+".html";
+  var path = "articles/"+date+".html";
   //console.log(path);
 
   $.get(path,function(data){
@@ -69,50 +58,29 @@ function setup_search(){
 	$('input').bind('keydown', function(e) {
     if (e.which == 13 || e.keyCode == 13) {
       e.preventDefault();
-      $("#filter > .category-item").each(function(k,v){
-      	var jq = $(v);
-      	if(!jq.is(":hidden")){
-      		console.log("---");
-      		var a = jq.children(".cat-line-article");
-      		console.log(a.attr("href"));
-      		
-      		window.location.replace(a.attr("href"));
-      		//a.click();
-      		//console.log(a);
-      		return;
-      	}
-      });
+      var first = $(".article-line").filter(":visible").first();
+      if(first.length) window.location.replace(first.attr("href"));
     }
-	});
+  });
 
 }
 
 function filterArticles(val, reset){
-  //console.log(val, reset);
+  clearSubcatFilter();
 
   if(reset){
-    $("#categories").show();
-    $("#filter").hide();
+    $(".article-line").show();
     return;
-  }else{
-    $("#filter").show();
-    $("#categories").hide();
   }
 
   val = val.toLowerCase();
 
-  $(".filter-link").each(function(){
+  $(".article-line").each(function(){
     var t = $(this);
     var content = t.text().toLowerCase();
 
-    if(content.indexOf(val) > -1){
-      //console.log(content+","+val);
-      t.show();
-    }else{
-      t.hide();
-    }
-
-    //console.log($(this).text());
+    if(content.indexOf(val) > -1) t.show();
+    else t.hide();
   });
 }
 
@@ -130,57 +98,35 @@ function setup__interactivity(){
     hideOverlay(100);
   });
   
-  //click category
-  $(".category").click(function(e){
-    
-    //inactive links
-    if($(this).attr("href") != "#") return;
-    
+  //click a subcat badge : hide every article line with a different subcat, click again to reset
+  $(".subcat").click(function(e){
     e.preventDefault();
+    e.stopPropagation();
 
-    //fetch articles of catego container
-    var id = "links-"+$(this).attr("id");
-    var elmt = $("#"+id);
-    
-    //masque tout les container de liens ouvert
-    $(".links").not("[id='"+id+"']").hide();
+    var $this = $(this);
+    var subcat = $this.attr("data-subcat");
 
-    if(!elmt.is(":visible")){
-      //reset lines behaviour (movement on move over)
-      //elmt.children(".category-item").stop().css("margin-left", "0px");
-      elmt.show(100);
-    }else{
-      elmt.hide();
+    if($this.hasClass("subcat-active")){
+      clearSubcatFilter();
+      return;
     }
 
-  });
-  
+    clearSubcatFilter();
+    $this.addClass("subcat-active");
 
-  //hover on article or category make it go right a little
-  $(".category, .category-item").hover(function(){
-    $this = $(this);
-    $this.stop().animate({marginLeft:"10px"}, 150);
-  }, function(){
-    $this = $(this);
-    $this.stop().animate({marginLeft:'0px'}, 100);
-  });
-
-  //filter by subcategory
-  $(".cat-line-sub").click(function(e){
-    e.preventDefault();
-    $this = $(this);
-    var filter = $this.html();
-    
-    //hide all
-    var cat = $this.parent().parent(); // line wrapper > links wrapper
-    cat.children('.category-item').hide();
-
-    //console.log("filtering "+filter+" for cat : "+cat.attr("id"));
-
-    //show only what we want
-    cat.children('.'+filter).show();
+    $(".article-line").each(function(){
+      var line = $(this);
+      if(line.find(".subcat").attr("data-subcat") !== subcat){
+        line.addClass("subcat-hidden");
+      }
+    });
   });
 
+}
+
+function clearSubcatFilter(){
+  $(".subcat").removeClass("subcat-active");
+  $(".article-line").removeClass("subcat-hidden");
 }
 
 function trim (myString)
@@ -220,17 +166,19 @@ function openParentCategory(){
 var updateId = -1;
 function openOverlay(){
   updateOverlay();
-  $("#overlay-bg").slideDown(500);
-  
-  $("#overlay").slideDown(700, function(){
-    if(updateId < 0){
-      //permet de resize le fond noir par rapport au resize de l'user
-      updateId = setInterval(function(){ updateOverlay(); }, 200);
-    }
-  });
 
-  $("#overlay-click").slideDown(100);
-  //$("#overlay").show('slide', {direction: 'right'}, 200);
+  $("#overlay-bg").css("display", "block").addClass("fade-in");
+
+  $("#overlay").css("display", "block").removeClass("article-in");
+  void $("#overlay")[0].offsetWidth; // force reflow so the animation replays
+  $("#overlay").addClass("article-in");
+
+  if(updateId < 0){
+    //permet de resize le fond noir par rapport au resize de l'user
+    updateId = setInterval(function(){ updateOverlay(); }, 200);
+  }
+
+  $("#overlay-click").css("display", "block");
 }
 
 /* setup black overlay based on the size of the screen */
@@ -265,13 +213,9 @@ function updateOverlay(){
 }
 
 function hideOverlay(delay){
-  var other = (delay <= 0) ? 0 : delay + 100; // 100 more ?
-  $("#overlay-click").hide(other);
-  $("#overlay-bg").hide(other);
-  $("#overlay").hide(delay);
-  
-  //remove article selection
-  $(".category-item").removeClass("category-item-selected");
+  $("#overlay-click").hide(delay);
+  $("#overlay-bg").hide(delay).removeClass("fade-in");
+  $("#overlay").hide(delay).removeClass("article-in");
 
   //vire le process qui permet de resize le fond noir si l'user change la taille de son navigateur
   if(updateId > -1){

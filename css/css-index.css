@@ -5,14 +5,14 @@ body{
   margin:0px;
   padding:0px;
   font-family:Oswald, Courier New;
-  background-color:#fff;
-  color:#fff;
+  background-color:#ff0;
+  color:#f0f;
   text-align:center;
 }
 
 a{
   text-decoration:none;
-  color:#fff;
+  color:#f0f;
 }
 
 p{ margin-top:16px;padding:0px; }
@@ -23,43 +23,70 @@ p{ margin-top:16px;padding:0px; }
   margin-top:50px;
 }
 
-#categories{
+#fixed-pages{
   font-family:"Oswald";
-  margin:auto;
-  width:500px;
+  margin:0px auto 20px;
+  max-width:500px;
+  width:90%;
+  text-align:center;
 }
-
-.category{
-  text-align:left;
-  display:block;
-  letter-spacing:1px;
-  line-height:60px;
-  font-size:3em;
+#fixed-pages a{
   color:#000;
+  font-size:1.3em;
+  letter-spacing:1px;
 }
-.category:hover{
-  color:#b33 !important;
+#fixed-pages a:hover{
+  color:#b33;
 }
 
-.category-item{
-  text-align:left;
+@keyframes sommaire-in{
+  from{ opacity:0; transform:translateY(24px); }
+  to{ opacity:1; transform:translateY(0); }
+}
+
+#sommaire{
+  font-family:"Oswald";
+  margin:0px auto;
+  max-width:700px;
+  width:92%;
+  text-align:center;
+  animation:sommaire-in 0.5s ease-out both;
+}
+
+.article-line{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:baseline;
+  justify-content:center;
+  padding:10px 0px;
+  color:#f0f;
   font-size:1.1em;
-  height:25px;
-  display:block;
 }
-.category-item-selected{
-  color:#b33 !important;
+.article-line:hover{
+  color:#b33;
+}
+.article-line.subcat-hidden{
+  display:none;
 }
 
-.cat-line-sub{
-  min-width:30px;
-  color:#989898;
+.subcat{
+  color:rgba(255,0,255,0.5);
+  min-width:80px;
+  display:inline-block;
 }
-.cat-line-article{
-  color:#121212;
+.subcat.subcat-active{
+  color:#b33;
+  font-weight:bold;
 }
-.cat-line-article:hover, .cat-line-sub:hover{
-  color:#b33 !important;
+
+.title{
+  margin:0px 8px;
+}
+
+.date{
+  color:rgba(184,184,184,0.2);
+  font-size:0.85em;
+  margin-left:8px;
 }
 
 #overlay-bg{
@@ -80,25 +107,57 @@ p{ margin-top:16px;padding:0px; }
   left:0px;
 }
 
+@keyframes article-in{
+  0%{
+    opacity:0;
+    transform: translateY(-60px) rotate(-2.5deg) scale(1.03);
+    box-shadow: 0 0px 0px rgba(0,0,0,0);
+  }
+  55%{
+    opacity:1;
+    transform: translateY(8px) rotate(0.6deg) scale(1);
+  }
+  75%{
+    transform: translateY(-3px) rotate(-0.2deg) scale(1);
+  }
+  100%{
+    transform: translateY(0) rotate(0deg) scale(1);
+    box-shadow: 0 18px 40px rgba(0,0,0,0.4);
+  }
+}
+@keyframes overlay-fade-in{
+  from{ opacity:0; }
+  to{ opacity:0.98; }
+}
+
 #overlay{
   color:#fff;
   /*background-color:#d11;*/
-  display:block;
+  display:none;
   position:absolute;
   top:20px;
   right:0px;
   padding:20px 20px;
-  
+  box-sizing:border-box;
+  transform-origin: 50% 0%;
+
   /* overlay-bg is based on overlay size (by JS) */
   width:65%;
-  min-width:700px;
+  max-width:700px;
+}
+#overlay.article-in{
+  animation: article-in 0.65s cubic-bezier(0.22, 0.61, 0.36, 1) both;
+}
+#overlay-bg.fade-in{
+  animation: overlay-fade-in 0.35s ease-out both;
 }
 
 
 .searchZone{
   margin:auto;
   text-align: left;
-  width:500px;
+  max-width:500px;
+  width:90%;
   height:35px;
   line-height:35px;
   margin-bottom: 10px;
@@ -114,17 +173,6 @@ p{ margin-top:16px;padding:0px; }
   height:35px;
   width:80%;
 }
-
-/* le container des articles pour le système de recherche */
-#filter{
-  display:none;
-  margin:20px auto;
-  width:500px;
-}
-#filter-link{
-  
-}
-
 
 #content{
   font-family:"Open Sans";
@@ -152,7 +200,9 @@ p{ margin-top:16px;padding:0px; }
   padding-left:30px;
   font-size:3em;
   font-weight:500;
-  width:700px;
+  max-width:700px;
+  width:100%;
+  box-sizing:border-box;
   letter-spacing:normal;
   margin:50px 0px;
 }
@@ -219,7 +269,9 @@ p{ margin-top:16px;padding:0px; }
 
 #screenshots{
   text-align:left;
-  width:700px;
+  max-width:700px;
+  width:100%;
+  box-sizing:border-box;
 }
 
 .screenshot{
@@ -273,6 +325,24 @@ p{ margin-top:16px;padding:0px; }
   line-height: 32px;
 }
 
+
+@media (max-width: 768px){
+  #overlay{
+    width:92%;
+    right:4%;
+    padding:14px;
+  }
+  #content-title{
+    font-size:1.8em;
+    padding-left:14px;
+  }
+  .subcat{
+    min-width:0;
+  }
+  #all{
+    margin-top:20px;
+  }
+}
 
 /* BUILDER */
 

@@ -16,3 +16,7 @@ error_log
 *.cache
 
 pages*
+articles*
+Dockerfile
+docker-compose.yml
+rss.xml

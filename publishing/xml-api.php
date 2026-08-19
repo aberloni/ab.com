@@ -32,7 +32,7 @@
 
     foreach($list as $page)
     {
-      $path = ROOT."pages/".$page;
+      $path = ROOT."editing/pages/".$page;
       $dt = explode(".", $page)[0];
       $fileDate = filemtime($path);
 

@@ -6,8 +6,151 @@
 
     // ///////////// CONST
 
-    $mediaPath = ROOT."pages/medias/";
-    $pagesPath = ROOT."pages/";
+    $mediaPath = ROOT."articles/medias/";
+    $pagesPath = ROOT."editing/pages/";
+
+    function loadConfig()
+    {
+        $configData = file_get_contents(ROOT."editing/config.json");
+        return json_decode($configData);
+    }
+
+    /// regenerate index.html (homepage), returns ["status"=>"créé|mis à jour|inchangé", "count"=>n]
+    function generateIndex()
+    {
+        $conf = loadConfig();
+
+        $outputFile = ROOT."index.html";
+
+        $output = "";
+
+        // PAGE
+        $output = '<html lang="en">'.PHP_EOL;
+
+        //HEADER
+        $configHeader = $conf->{"header"};
+        $output .= '<head>'.PHP_EOL;
+        $output .= '<title>'.$configHeader->{"title"}.'</title>'.PHP_EOL;
+
+        $output .= '<link rel="icon" type="image/png" href="favicon.png">';
+
+        $output .= PHP_EOL;
+        $output .= '<meta charset="'.$configHeader->{"charset"}.'" />'.PHP_EOL;
+        $output .= '<meta name="viewport" content="width=device-width, initial-scale=1" />'.PHP_EOL;
+        $output .= '<meta name="Description" content="'.$configHeader->{"description"}.'" />'.PHP_EOL;
+
+        $output .= '<link rel="alternate" type="application/rss+xml" title="'.$configHeader->{"title"}.'" href="rss.xml" />'.PHP_EOL;
+
+          //CSS
+        $css = $configHeader->{"css"};
+        $output .= PHP_EOL;
+        foreach($css as $line)
+        {
+            $output .= '<link rel="stylesheet" type="text/css" href="'.$line.'">'.PHP_EOL;
+        }
+
+          // FONTS
+        $fonts = $configHeader->{"fonts"};
+        $output .= PHP_EOL;
+
+        $output .= '<link rel="preconnect" href="https://fonts.googleapis.com">'.PHP_EOL;
+        $output .= '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'.PHP_EOL;
+
+        foreach($fonts as $font)
+        {
+            $output .= '<link rel="stylesheet" href="'.$font.'">'.PHP_EOL;
+        }
+
+          //JS
+
+        $js = $configHeader->{"js"};
+        $output .= PHP_EOL;
+        foreach($js as $line)
+        {
+            $output .= '<script type="text/javascript" src="'.$line.'"></script>'.PHP_EOL;
+        }
+
+          //GOOGLE
+        $output .= html_googleAnalytics($configHeader->{"googleAnalytics"}).PHP_EOL;
+
+        $output .= '</head>'.PHP_EOL;
+
+        //BODY
+        $output .= PHP_EOL;
+        $output .= '<body>'.PHP_EOL;
+
+        $output .= PHP_EOL.PHP_EOL;
+
+        $output .= '<div id="all">';
+
+        //SEARCH BOX
+        $output .= '<div class="searchZone">';
+        $output .= '<input id="search" value="Search for articles here" />&nbsp;';
+        $output .= '</div>';
+
+        //FIXED PAGES
+        $fixed = $conf->{"fixed"};
+        if(count($fixed) > 0){
+            $output .= '<div id="fixed-pages">';
+            foreach($fixed as $page){
+                $output .= '<a href="page-'.$page.'">'.ucfirst($page).'</a>'.PHP_EOL;
+            }
+            $output .= '</div>';
+        }
+
+        //SOMMAIRE : liste plate de tout les articles, triée par date desc
+        $items = getItems();
+        usort($items, function($a, $b){ return strcmp($b["file"], $a["file"]); });
+
+        $output .= '<div id="sommaire">'.PHP_EOL;
+        foreach($items as $item){
+            $output .= '<a href="'.$item["file"].'" class="article-line">';
+            if(strlen($item["subcat"]) > 0){
+                $output .= '<span class="subcat" data-subcat="'.htmlspecialchars($item["subcat"]).'">'.htmlspecialchars($item["subcat"]).'</span>';
+            }
+            $output .= '<span class="title">'.htmlspecialchars($item["title"]).'</span>';
+            $output .= '<span class="date">('.$item["file"].')</span>';
+            $output .= '</a>'.PHP_EOL;
+        }
+        $output .= '</div>';
+
+        $output .= '</div>';
+
+          //OVERLAY
+        $output .= PHP_EOL.PHP_EOL;
+        $output .= '<div id="overlay-click"></div>';
+        $output .= '<div id="overlay-bg"></div>';
+        $output .= '<div id="overlay" rel=""></div>';
+
+        $output .= PHP_EOL.PHP_EOL;
+        $output .= '</body>'.PHP_EOL;
+
+        $output .= '</html>';
+
+        //WRITE OUPUT
+        $previous = file_exists($outputFile) ? file_get_contents($outputFile) : null;
+        $status = ($previous === $output) ? "inchangé" : (($previous === null) ? "créé" : "mis à jour");
+
+        $file = fopen($outputFile, "w+");
+        fwrite($file, $output);
+        fclose($file);
+
+        return ["status"=>$status, "count"=>count($items)];
+    }
+
+    function html_googleAnalytics($id)
+    {
+        $str = "";
+        $str .= '<script type="text/javascript">';
+        $str .= 'var _gaq = _gaq || []; _gaq.push(["_setAccount", "'.$id.'"]); _gaq.push(["_trackPageview"]);';
+        $str .= '(function() {'.PHP_EOL;
+        $str .= 'var ga = document.createElement("script"); ga.type = "text/javascript"; ga.async = true;'.PHP_EOL;
+        $str .= 'ga.src = ("https:" == document.location.protocol ? "https://ssl" : "http://www") + ".google-analytics.com/ga.js";'.PHP_EOL;
+        $str .= 'var s = document.getElementsByTagName("script")[0]; s.parentNode.insertBefore(ga, s);'.PHP_EOL;
+        $str .= '})();';
+        $str .= '</script>';
+        return $str;
+    }
 
 
 
@@ -69,24 +212,17 @@
     /* génère le code html d'un article */
     function displayItem($path, $fileName)
     {
-      $path = $path.$fileName.".txt";
+      $path = $path.$fileName.".md";
       
       if (!file_exists($path)) return "{API} I don't have ".$path;
 
       //open file
       $fileHandle = fopen($path, "r");
       
-      //catch first line to get info on file
+      //catch first line to get info on file : categorie <TAB> sous-categorie <TAB> titre
       $line = fgets($fileHandle);
-      echo "<h2>title : ".$line." (".$fileName.")</h2>";
-
-      //remove first word (category)
-      $firstSpace = strpos($line, " ");
-      $title = substr($line, $firstSpace+1, strlen($line) - $firstSpace);
-      
-      //remove second word
-      $firstSpace = strpos($title, " ");
-      $articleTitle = substr($title, $firstSpace+1, strlen($title) - $firstSpace);
+      $headerInfo = explode("\t", trim($line));
+      $articleTitle = isset($headerInfo[2]) ? $headerInfo[2] : "";
 
       //get all info
       $content = "";
@@ -141,140 +277,48 @@
       //si il existe un - dans le nom (YYYY-MM-DD-X | YYYY-MM-DD_X) c'est que c'est une date d'article
       //attention : les fichiers qui ne sont pas des articles ne doivent pas contenir de -
       if (strpos($itemDate, "-") === false) {
-        $str = displayItem(ROOT, trim($itemDate));
+        $str = displayItem(ROOT."editing/", trim($itemDate));
       }else {
-        $str = displayItem(ROOT."pages/", trim($itemDate));
+        $str = displayItem(ROOT."editing/pages/", trim($itemDate));
       }
 
       return $str;
     }
 
-    /* va filter tout les articles qui sont lié a une catégorie spécifique donnée */
-    function generateCatListToHtml($articles, $categoryFilter){
-      
-      //get all article of specific category
-      if(!isset($articles[$categoryFilter])) return;
-      $articles = $articles[$categoryFilter];
-      $articles = array_reverse($articles);
-      
-      $str = '<div class="links" id="links-'.$categoryFilter.'">'.PHP_EOL;
-      foreach($articles as $article){ $str .= generateArticleLinkToHtml($article); }
-      $str .= '</div>'.PHP_EOL;
+    /* génère (si besoin) la page html d'un article et renvoie son statut : "created", "updated" ou "unchanged" */
+    function buildArticle($date)
+    {
+      $outputDir = ROOT."articles/";
+      if(!is_dir($outputDir)) mkdir($outputDir, 0755, true);
 
-      return $str;
-    }
-    
+      $fileName = $outputDir.$date.".html";
+      $output = article_toHtml($date);
 
+      $previous = file_exists($fileName) ? file_get_contents($fileName) : null;
 
+      if($previous === $output) return "unchanged";
 
+      file_put_contents($fileName, $output);
 
-
-
-    /* génère la ligne qui permet d'afficher le lien sur l'index */
-    function generateArticleLinkToHtml($article, $additionnalClass = ""){
-      $title = $article["title"];
-      $firstBlank = strpos($title, " ");
-      
-      $sub = substr($title, 0, $firstBlank);
-      $title = substr($title, $firstBlank, strlen($title));
-      $file = $article["file"];
-
-      $str = '<div class="category-item  '.$additionnalClass.' '.$sub.'">';
-        if(strlen($sub) > 0)  $str .= '<a class="cat-line-sub" href="">'.$sub.'</a>';
-        $str .= '<a class="cat-line-article" href="'.$file.'">'.$title.'</a>';
-        $str .= '<span class="article-date" href="'.$file.'">('.$file.')</span>';
-      $str .= '</div>'.PHP_EOL;
-      return $str;
+      return ($previous === null) ? "created" : "updated";
     }
 
-    /* regroupe les liens de TOUT les articles (sans category) */
-    function generateArticlesLinksToHtml($categories, $articles){
-      $list = [];
+    /* régénère les stats et le rss.xml (données agrégées sur tous les articles) */
+    function refreshAggregates()
+    {
+      include_once(ROOT."publishing/stats-api.php");
+      stats_update();
 
-      //foreach($articles as $key=>$val){ echo "<br/> key = ".$key.", val = ".count($val); }
-
-      foreach($categories as $category){
-        $categoryFilter = $category->{"cat"};
-
-        //fetch all article of specific category
-        if(!isset($articles[$categoryFilter])) continue;
-
-        //echo "cat ".$categoryFilter." has ".count($articles[$categoryFilter])." articles";
-
-        $filtered = $articles[$categoryFilter];
-        $filtered = array_reverse($filtered);  
-
-        foreach($filtered as $article){
-          $line = generateArticleLinkToHtml($article, "filter-link");
-          $list[] = $line;
-        }
-
-      }
-
-      return $list;
+      include_once(ROOT."publishing/xml-api.php");
+      xml_update();
     }
 
-    //http://davidwalsh.name/facebook-meta-tags
-    //https://developers.facebook.com/tools/debug/
-    function header_openGraph($date){
-      if(strlen($date) <= 0) return;
 
-      $head = getItemHeader($date);
-      list($cat,$type) = explode(" ", getItemHeader($date));
-      $desc = substr($head, strpos($head, $type) + strlen($type));
-      ?>
-      <meta property="og:type" content="blog"/>
-      <meta property="og:site_name" content="André Berlemont's portfolio"/>
-      <meta property="og:url" content="<?php echo getCurrentUrl(); ?>"/>
-      <meta property="og:title" content='<?php echo $type.$desc; ?>'/>
-      <?php
-
-        //img
-        $ogimg = openGraph__getImage($date);
-        //echo "og ? (".strlen($ogimg).") ".$ogimg;
-        if(strlen($ogimg) > 0){ echo '<meta property="og:image" content="'.$ogimg.'"/>'; }
-
-        //content
-        echo '<meta property="og:description" content="'.$type.$desc.'"/>';
-    }
-
-    function openGraph__getImage($date){
-      global $mediaPath;
-      $default = "http://www.andreberlemont.com/portfolio/design/mushroom_300_meh.png";
-      $path = "";
-      $url = gallery__getFirstImageUrl($date);
-      //echo $url;
-      if(strlen($url) > 0){
-        $path = "http://www.andreberlemont.com/portfolio/".$mediaPath.$date."/";
-        if(strlen($path) <= 0)  $path = $default;
-      }
-      return $path;
-    }
-    
-    function gallery__getFirstImageUrl($date){
-      $list = getScreenshots($date);
-      if(count($list) > 0){ return $list[0]; }
-      return "";
-    }
-    
-    function getCategories(){
-      $all = getItemsByCategories();
-      $cats = Array();
-      foreach($all as $cat=>$val){
-
-        //skip fixed pages
-        if(strlen($cat) < 1) continue;
-
-        if(!in_array($cat, $cats)) $cats[] = $cat;
-      }
-      //echo count($cats);
-      return $cats;
-    }
 
     function getItems(){
-      if(!is_dir(ROOT."pages/")) return "";
+      if(!is_dir(ROOT."editing/pages/")) return "";
 
-      $path = ROOT."pages/";
+      $path = ROOT."editing/pages/";
       $files = scandir($path);
       $all = array();
       
@@ -289,65 +333,28 @@
         //skip #
         if(is_int(strpos($f, "#"))) continue;
         
-        //print_r($info["extension"]);
-        //echo strcmp($info["extension"],"txt");
-        if(strcmp($info["extension"],"txt") < 0) continue;
+        if(!isset($info["extension"]) || strcasecmp($info["extension"], "md") != 0) continue;
 
         //echo"<br/><br/> OK";
         
+        //header format: categorie <TAB> sous-categorie <TAB> titre
         $header = getItemHeader($info["filename"]);
-        $headerInfo = explode(" ", $header);
-        
-        //cat
-        $cat = strtolower($headerInfo[0]);
-        $cat = preg_replace('/[\r\n]+/', '\n', $cat);
-        
-        //article title
-        $title = substr($header, strlen($cat)+1, strlen($header));
-        $title = str_replace("\r\n", "", $title);
-        $title = str_replace("\n", "", $title);
-        
-        //var_dump(htmlentities($cat));
-        //echo "<br />".$cat.",".strcmp($cat, "ggj");
-        
-        //table correspondance pour les vieux articles
-        if($cat == "tools" || $cat == "rails" || $cat == "as3" || $cat == "jsx" || $cat == "php" || $cat == "maxscript")
-        {
-            $cat = "code";
-        }
-        else if($cat == "ggj" || $cat == "jam")
-        {
-            $cat = "gamejam";
-        }
-        else if($cat == "music" || $cat == "quotes")
-        {
-            $cat = "blog";
-        }
-        
-        $new = array("cat"=>$cat,"file"=>$info["filename"],"title"=>$title);
+        $headerInfo = explode("\t", $header);
+
+        $cat = isset($headerInfo[0]) ? trim($headerInfo[0]) : "";
+        $subcat = isset($headerInfo[1]) ? trim($headerInfo[1]) : "";
+        $title = isset($headerInfo[2]) ? trim($headerInfo[2]) : "";
+
+        $new = array("cat"=>$cat,"subcat"=>$subcat,"file"=>$info["filename"],"title"=>$title);
 
         $all[] = $new;
       }
       return $all;
     }
 
-    /* retourne la liste des articles par categories */
-    function getItemsByCategories(){
-      $files = getItems();
-
-      for($i = 0; $i < count($files); $i++){
-        $file = $files[$i];
-        $cat = $file["cat"];
-        $new = array("cat"=>$cat,"file"=>$file["file"],"title"=>$file["title"]);
-        $all[$cat][] = $new;
-      }
-
-      return $all;
-    }
-    
     /* param = date, retourne l'entete titre de l'article */
     function getItemHeader($id){
-      $path = ROOT."pages/".$id.".txt";
+      $path = ROOT."editing/pages/".$id.".md";
       $title = "";
       
       if(file_exists($path)){

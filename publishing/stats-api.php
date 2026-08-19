@@ -6,7 +6,7 @@
 
   function gatherPages(){
     
-    $path = ROOT."pages".DIRECTORY_SEPARATOR;
+    $path = ROOT."editing/pages".DIRECTORY_SEPARATOR;
     $files = scandir($path);
     
     //echo "Files = ".count($files);
@@ -21,8 +21,8 @@
       if(strcmp($fileName,"#") == 0) continue;
       if(strpos($fileName,"page") > -1) continue;
 
-      //only source .txt files, skip the generated .html counterpart
-      if(strcasecmp($info["extension"], "txt") != 0) continue;
+      //only source .md files, skip the generated .html counterpart
+      if(!isset($info["extension"]) || strcasecmp($info["extension"], "md") != 0) continue;
 
       //echo "<br/> added ".$fileName;
       $list[] = $fileName;
