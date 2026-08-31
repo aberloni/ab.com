@@ -3,3 +3,8 @@
 - Always use as few tokens as possible. Go straight to the point.
 - NEVER touch git.
 - NEVER test yourself. No browser, screenshots, curl, or rebuilds to verify — the user checks. Just make the change and stop.
+
+## changelog.md
+
+- Each log should be simple and fast to read (200 character max).
+- Grouped by date YYYY-MM-DD.

@@ -36,10 +36,12 @@ $(function(){
   //default view : only articles from the last 6 months
   applyDefaultView();
 
-  //local dev only : quick links to the builder + editor
+  //local dev only : quick links to the builder + editor + live site
   if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)){
     $('<a id="build-link" href="publishing/builder.php">build</a>').appendTo("body");
     $('<a id="edit-link" href="editing/phanes.php">phanes</a>').appendTo("body");
+    $('<a id="online-link" href="https://www.andreberlemont.com" target="_blank">online</a>').appendTo("body");
+    $('<a id="ovh-link" href="https://manager.eu.ovhcloud.com/#/web/hosting/andreberlemont.com/multisite" target="_blank">OVH</a>').appendTo("body");
   }
 
   display_article();

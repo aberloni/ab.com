@@ -212,12 +212,16 @@ p{ margin-top:16px;padding:0px; }
 #search{
   background:url("design/icon_glass.png") no-repeat;
   background-position: 5px 5px;
-  color:#BCBCBC;
-  border-style: solid;
+  color:rgba(255,0,255,0.5);
+  border:2px solid rgba(255,0,255,0.25);
   margin-bottom:15px;
   padding:5px 30px;
   height:35px;
   width:80%;
+}
+#search:focus{
+  color:#f0f;
+  border-color:rgba(255,0,255,0.5);
 }
 
 #time-travel{
@@ -268,9 +272,15 @@ p{ margin-top:16px;padding:0px; }
   letter-spacing:0.1em;
   font-size:0.6em;
   color:rgba(0,0,0,0.25);
+  opacity:0;
+  transition:opacity 0.15s;
+}
+#watermark:hover ~ #watermark-version,
+#watermark-version:hover{
+  opacity:1;
 }
 
-#build-link,#edit-link{
+#build-link,#edit-link,#online-link,#ovh-link{
   position:fixed;
   right:0;
   bottom:0;
@@ -286,7 +296,13 @@ p{ margin-top:16px;padding:0px; }
 #edit-link{
   right:5em;
 }
-#build-link:hover,#edit-link:hover{
+#online-link{
+  right:11em;
+}
+#ovh-link{
+  right:18em;
+}
+#build-link:hover,#edit-link:hover,#online-link:hover,#ovh-link:hover{
   color:#000;
   text-decoration:underline;
 }
