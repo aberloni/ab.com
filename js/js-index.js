@@ -1,10 +1,25 @@
 //website palette colors
 var colors = [
   //["fff", "000", "555", "AAA", "555", "777", "111"]
-  ["fafafa", "121212", "5a5a5a", "a1a1a1", "555", "777", "111"]
+  ["ff0", "121212", "5a5a5a", "a1a1a1", "555", "777", "111"]
   //["040a19", "1b543d", "7d8c35", "c7a734", "fab95b", "de7f50"]
   //["0f141f", "46594B", "A6977C", "D9B384", "734F30", "532e25"]
 ];
+
+/* a media (img/video) failed to load : replace it with a red box showing its name */
+function mediaFail(el){
+  if(el.dataset && el.dataset.failed) return;
+  var src = el.getAttribute("src");
+  if(!src){
+    var s = el.querySelector && el.querySelector("source");
+    src = (s && s.getAttribute("src")) || el.getAttribute("data-media") || el.getAttribute("alt") || "media";
+  }
+  var box = document.createElement("div");
+  box.className = "media-failed";
+  box.dataset.failed = "1";
+  box.textContent = src.split("/").pop();
+  if(el.parentNode) el.parentNode.replaceChild(box, el);
+}
 
 $(function(){
 
@@ -17,6 +32,14 @@ $(function(){
   hideOverlay(0);
 
   setup__interactivity();
+
+  //default view : only articles from the last 6 months
+  applyDefaultView();
+
+  //local dev only : quick link to the builder
+  if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)){
+    $('<a id="build-link" href="publishing/builder.php">build</a>').appendTo("body");
+  }
 
   display_article();
 
@@ -55,6 +78,18 @@ function setup_search(){
     filterArticles($(this).val(), input.val().length == 0 || input.val() == defaultVal);
   });
 
+  $("#time-travel").click(function(){
+    var $b = $(this);
+    if($b.hasClass("active")){
+      applyDefaultView();
+    }else{
+      $b.addClass("active");
+      $("#sommaire").addClass("show-years");
+      clearSubcatFilter();
+      $(".article-line").show();
+    }
+  });
+
 	$('input').bind('keydown', function(e) {
     if (e.which == 13 || e.keyCode == 13) {
       e.preventDefault();
@@ -65,13 +100,34 @@ function setup_search(){
 
 }
 
+/* default view : hide anything older than 6 months (still searchable) */
+function applyDefaultView(){
+  clearSubcatFilter();
+  $("#time-travel").removeClass("active");
+  $("#sommaire").removeClass("show-years");
+
+  var d = new Date();
+  d.setMonth(d.getMonth() - 6);
+  var cutoff = d.toISOString().substring(0, 10);
+
+  $(".article-line").each(function(){
+    var href = $(this).attr("href");
+    if(!href) return; // skip non-article rows (e.g. #time-travel)
+    if(href.substring(0, 10) >= cutoff) $(this).show();
+    else $(this).hide();
+  });
+}
+
 function filterArticles(val, reset){
   clearSubcatFilter();
 
   if(reset){
-    $(".article-line").show();
+    applyDefaultView();
     return;
   }
+
+  //searching : full archive, no year separators
+  $("#sommaire").removeClass("show-years");
 
   val = val.toLowerCase();
 
@@ -167,6 +223,17 @@ var updateId = -1;
 function openOverlay(){
   updateOverlay();
 
+  //hide the homepage while reading an article
+  $("#all").hide();
+
+  //back arrow (visible on mobile via css) to return to the homepage
+  if(!$("#overlay-back").length){
+    $('<button id="overlay-back" type="button" aria-label="back">←</button>')
+      .appendTo("body")
+      .click(function(){ hideOverlay(100); });
+  }
+  $("#overlay-back").show();
+
   $("#overlay-bg").css("display", "block").addClass("fade-in");
 
   $("#overlay").css("display", "block").removeClass("article-in");
@@ -216,6 +283,10 @@ function hideOverlay(delay){
   $("#overlay-click").hide(delay);
   $("#overlay-bg").hide(delay).removeClass("fade-in");
   $("#overlay").hide(delay).removeClass("article-in");
+
+  //restore the homepage
+  $("#all").show();
+  $("#overlay-back").hide();
 
   //vire le process qui permet de resize le fond noir si l'user change la taille de son navigateur
   if(updateId > -1){

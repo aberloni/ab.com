@@ -6,7 +6,8 @@
 
     // ///////////// CONST
 
-    $mediaPath = ROOT."articles/medias/";
+    $mediaPath = ROOT."articles/medias/";   // filesystem path (thumb generation)
+    $mediaUrl  = "articles/medias/";         // web path (href/src in generated html)
     $pagesPath = ROOT."editing/pages/";
 
     function loadConfig()
@@ -88,22 +89,18 @@
         $output .= '<input id="search" value="Search for articles here" />&nbsp;';
         $output .= '</div>';
 
-        //FIXED PAGES
-        $fixed = $conf->{"fixed"};
-        if(count($fixed) > 0){
-            $output .= '<div id="fixed-pages">';
-            foreach($fixed as $page){
-                $output .= '<a href="page-'.$page.'">'.ucfirst($page).'</a>'.PHP_EOL;
-            }
-            $output .= '</div>';
-        }
-
         //SOMMAIRE : liste plate de tout les articles, triée par date desc
         $items = getItems();
         usort($items, function($a, $b){ return strcmp($b["file"], $a["file"]); });
 
         $output .= '<div id="sommaire">'.PHP_EOL;
+        $currentYear = null;
         foreach($items as $item){
+            $year = substr($item["file"], 0, 4);
+            if($year !== $currentYear){
+                $currentYear = $year;
+                $output .= '<div class="year-sep"><span>'.htmlspecialchars($year).'</span></div>'.PHP_EOL;
+            }
             $output .= '<a href="'.$item["file"].'" class="article-line">';
             if(strlen($item["subcat"]) > 0){
                 $output .= '<span class="subcat" data-subcat="'.htmlspecialchars($item["subcat"]).'">'.htmlspecialchars($item["subcat"]).'</span>';
@@ -112,9 +109,16 @@
             $output .= '<span class="date">('.$item["file"].')</span>';
             $output .= '</a>'.PHP_EOL;
         }
+        $output .= '<button id="time-travel" class="article-line" type="button"><span class="title">time travel</span></button>'.PHP_EOL;
         $output .= '</div>';
 
         $output .= '</div>';
+
+          //WATERMARK : injected verbatim from watermark.html (edit that file to change it)
+        $watermarkFile = ROOT."watermark.html";
+        if(file_exists($watermarkFile)){
+            $output .= trim(file_get_contents($watermarkFile));
+        }
 
           //OVERLAY
         $output .= PHP_EOL.PHP_EOL;
@@ -181,7 +185,7 @@
 
     function solveSpecificPatternsOnLine($line, $date)
     {
-      global $mediaPath;
+      global $mediaUrl;
 
       //text to clickable link (not starting with [ and only starting with http...)
       //$line = preg_replace("/([^\[])(http(s)?:\/\/)([^\s\)\]])+/", '<a href="$0" target="_blank">$0</a>', $line);
@@ -195,10 +199,10 @@
       //$line = preg_replace("/\[([^\]]+)\]\(([^\)]+)\)/",'<a href="$2" target="_blank">$1</a>', $line);
 
       //replace {{file.ext}} to <img>
-      $line = preg_replace("/\{\{([^}]+)\}\}/", '<img src="'.$mediaPath.'$1" />', $line);
-      
+      $line = preg_replace("/\{\{([^}]+)\}\}/", '<img src="'.$mediaUrl.'$1" alt="$1" onerror="mediaFail(this)" />', $line);
+
       //replace [[]] to <video>
-      $replacement = '<video width="640" height="360" controls><source src="'.$mediaPath.'/$1" type="video/mp4">Your browser does not support the video tag.</video>';
+      $replacement = '<video width="640" height="360" controls onerror="mediaFail(this)" data-media="$1"><source src="'.$mediaUrl.'$1" type="video/mp4">Your browser does not support the video tag.</video>';
       $line = preg_replace("/\{\[([^]]+)\]\}/", $replacement, $line);
       
       return $line;

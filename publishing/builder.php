@@ -25,9 +25,13 @@
   .updated{color:#dc7;}
   .error{color:#f66;}
   .muted{color:#777;}
+  #home-link{position:fixed;left:0;bottom:0;padding:8px 12px;background:#181818;border:1px solid #333;color:#8cf;text-decoration:none;font-size:0.85em;}
+  #home-link:hover{color:#fff;}
 </style>
 </head>
 <body>
+
+<a id="home-link" href="/">← homepage</a>
 
 <?php
     $indexResult = generateIndex();

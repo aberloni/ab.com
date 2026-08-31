@@ -16,6 +16,9 @@ error_log
 *.cache
 
 pages*
+
+!pages/.htaccess
+
 articles*
 Dockerfile
 docker-compose.yml

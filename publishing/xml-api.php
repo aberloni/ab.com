@@ -62,8 +62,11 @@
 
     echo "<p>total processed x".$cnt." (all after : ".$strDate.")</p>";
 
-    // DUMP
+    // DUMP (collapsed — click to reveal)
+    echo '<details><summary style="cursor:pointer">xml output</summary>';
+    echo '<pre style="white-space:pre-wrap;background:#181818;border:1px solid #333;padding:10px;overflow:auto;">';
     echo htmlentities($output);
+    echo '</pre></details>';
 
     // WRITE
     $file = fopen(ROOT."rss.xml","w");
