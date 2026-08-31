@@ -34,6 +34,9 @@
 <a id="home-link" href="/">← homepage</a>
 
 <?php
+    $version = is_file(ROOT."version.md") ? trim(file_get_contents(ROOT."version.md")) : "?";
+    echo '<div class="summary">Phanes <b>v'.htmlspecialchars($version).'</b></div>';
+
     $indexResult = generateIndex();
     echo '<h1>index.html</h1>';
     echo '<div class="summary">'.$indexResult["count"]." articles — index.html : ".$indexResult["status"].'</div>';
