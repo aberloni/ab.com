@@ -53,6 +53,8 @@
     /// (uses the same buildArticle() as phanes.php's individual "Update" button)
     function generateArticles()
     {
+        $hidden = hiddenCategory();
+
         // articles whose header is not properly set : skip generation + drop any stale html
         $invalid = getInvalidHeaders();
         $removed = [];
@@ -61,13 +63,16 @@
             if(file_exists($html)){ unlink($html); $removed[] = $file; }
         }
 
-        $items = getItems();
+        // every valid .md is built ; hidden-category ones (ex: "about") are built too but reported apart
+        $all = getItems();
+        $items  = array_values(array_filter($all, function($it) use ($hidden){ return $it["cat"] !== $hidden; }));
+        $hiddenItems = array_values(array_filter($all, function($it) use ($hidden){ return $it["cat"] === $hidden; }));
 
         $created = [];
         $updated = [];
         $unchangedCount = 0;
 
-        foreach($items as $article)
+        foreach(array_merge($items, $hiddenItems) as $article)
         {
             $status = buildArticle($article["file"]);
 
@@ -85,6 +90,11 @@
         if(count($removed) > 0) echo " — <span class='error'>".count($removed)." html supprimés (header invalide)</span>";
         echo '</div>';
 
+        if(count($hiddenItems) > 0){
+            $names = array_map(function($it){ return $it["file"]; }, $hiddenItems);
+            echo '<div class="summary">pages "'.htmlspecialchars($hidden).'" (hors sommaire) : <b>'.htmlspecialchars(implode(", ", $names)).'</b></div>';
+        }
+
         if(count($created) > 0 || count($updated) > 0){
             echo '<table><tr><th>Fichier</th><th>Statut</th></tr>';
             foreach($created as $date) echo '<tr><td>'.htmlspecialchars($date).'</td><td class="created">créé</td></tr>';
@@ -98,7 +108,6 @@
         if(count($invalid) === 0){
             echo '<div class="summary">tous les headers sont valides</div>';
         }else{
-            echo '<div class="summary">ces articles sont ignorés (pas de html généré) tant que leur header n\'est pas au format <b>CATEGORY&lt;TAB&gt;Title</b> + ligne de mots-clés</div>';
             echo '<table><tr><th>Fichier</th><th>Problème</th></tr>';
             foreach($invalid as $file => $reason){
                 echo '<tr><td>'.htmlspecialchars($file).'</td><td class="error">'.htmlspecialchars($reason).'</td></tr>';

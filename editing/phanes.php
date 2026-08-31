@@ -177,6 +177,8 @@
   .navbar{display:flex;gap:8px;padding:12px 14px;}
   .navbar form{flex:1;margin:0;}
   .navbar button{width:100%;margin:0;padding:8px 6px;font-size:0.85em;}
+  .navbar .navbtn{flex:1;text-align:center;padding:8px 6px;font-size:0.85em;background:var(--accent);color:#fff;border-radius:4px;text-decoration:none;}
+  .navbar .navbtn:hover{background:var(--accent-hover);}
   .sort-toggle{flex:none;font-size:0.8em;color:var(--muted);text-decoration:none;border:1px solid var(--border);border-radius:4px;padding:6px 8px;white-space:nowrap;}
   .sort-toggle:hover{color:var(--accent);border-color:var(--accent);}
   .live{flex:none;margin-left:6px;font-size:0.95em;line-height:1;}
@@ -293,6 +295,7 @@
       <input type="hidden" name="action" value="refreshbuffer">
       <button type="submit" title="Buffer : <?php echo $cacheAge < 60 ? $cacheAge."s" : floor($cacheAge/60)."min"; ?>">Rafraîchir</button>
     </form>
+    <a class="navbtn" href="../publishing/builder.php" target="_blank">Builder</a>
   </div>
   <div style="padding:0 14px 12px;display:flex;gap:8px;align-items:center;">
     <input type="text" id="search" placeholder="Rechercher…" autocomplete="off" style="flex:1;min-width:0;">

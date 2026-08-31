@@ -257,8 +257,20 @@ p{ margin-top:16px;padding:0px; }
 #watermark:hover{
   color:#000;
 }
+#watermark-version{
+  position:fixed;
+  left:0;
+  bottom:0;
+  z-index:10;
+  padding:2px 14px;
+  transform:translateY(-2.4em);
+  font-family:"Oswald";
+  letter-spacing:0.1em;
+  font-size:0.6em;
+  color:rgba(0,0,0,0.25);
+}
 
-#build-link{
+#build-link,#edit-link{
   position:fixed;
   right:0;
   bottom:0;
@@ -271,7 +283,10 @@ p{ margin-top:16px;padding:0px; }
   color:rgba(0,0,0,0.3);
   text-decoration:none;
 }
-#build-link:hover{
+#edit-link{
+  right:5em;
+}
+#build-link:hover,#edit-link:hover{
   color:#000;
   text-decoration:underline;
 }

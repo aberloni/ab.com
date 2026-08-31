@@ -31,5 +31,9 @@ RewriteRule ^$ /index.html [L]
 RewriteCond %{DOCUMENT_ROOT}/articles/$1.html -f
 RewriteRule ^(\d{4}-\d{2}-\d{2}(?:_\d+)?)/?$ /index.html [QSA,L]
 
+# page fixe (ex: /about) : charger la SPA si le html correspondant existe
+RewriteCond %{DOCUMENT_ROOT}/articles/$1.html -f
+RewriteRule ^([a-z][a-z0-9_-]*)/?$ /index.html [QSA,L]
+
 # tout le reste ne pointe sur rien : woops (404)
 RewriteRule ^ - [R=404,L]

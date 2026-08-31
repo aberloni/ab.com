@@ -8,18 +8,5 @@
     "js":["//code.jquery.com/jquery-4.0.0.min.js","js/js-index.js"],
     "googleAnalytics":"UA-35938177-1"
   },
-  "categories":[
-    {"cat":"code","title":"Code"},
-    {"cat":"unity","title":"Unity3D"},
-    {"cat":"olr","title":"One Life Remains"},
-    {"cat":"epicbros","title":"Epic Bros"},
-    {"cat":"notes","title":"Notes"},
-    {"cat":"misc","title":"Miscellaneous"},
-    {"cat":"freelance","title":"Freelance"},
-    {"cat":"littlethings","title":"Little Things"},
-    {"cat":"gamejam","title":"Game Jam"},
-    {"cat":"random","title":"Random projects"},
-    {"cat":"postm","title":"Post Mortem"}
-  ],
-  "fixed":["about"]
+  "hiddenCategory":"page"
 }

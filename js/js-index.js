@@ -48,10 +48,12 @@ $(function(){
 });
 
 function display_article(){
-  var date = getFileDateFromUrl();
-  if(!/^\d{4}-\d{2}-\d{2}(_\d+)?$/.test(date)) return;
+  var seg = getFileDateFromUrl();
+  // date article (YYYY-MM-DD[_N]) or fixed page slug (ex: "about") — server only routes real ones here
+  if(!/^\d{4}-\d{2}-\d{2}(_\d+)?$/.test(seg) && !/^[a-z][a-z0-9_-]*$/.test(seg)) return;
+  if(seg === "index.html") return;
 
-  var path = "articles/"+date+".html";
+  var path = "articles/"+seg+".html";
 
   $.get(path,function(data){
     $("#overlay").html(data);

@@ -16,6 +16,20 @@
         return json_decode($configData);
     }
 
+    /* category whose articles are built + editable in Phanes but kept out of the homepage list / rss / stats (ex: "about") */
+    function hiddenCategory()
+    {
+        $conf = loadConfig();
+        return isset($conf->{"hiddenCategory"}) ? $conf->{"hiddenCategory"} : "page";
+    }
+
+    /* true if this .md's category is the hidden one */
+    function isHiddenPage($id)
+    {
+        $art = parseArticleFile(ROOT."editing/pages/".$id.".md");
+        return is_array($art) && $art["category"] === hiddenCategory();
+    }
+
     /// regenerate index.html (homepage), returns ["status"=>"créé|mis à jour|inchangé", "count"=>n]
     function generateIndex()
     {
@@ -92,8 +106,9 @@
         $output .= '<input id="search" value="Filter articles here" />&nbsp;';
         $output .= '</div>';
 
-        //SOMMAIRE : liste plate de tout les articles, triée par date desc
-        $items = getItems();
+        //SOMMAIRE : liste plate de tout les articles, triée par date desc (hors catégorie masquée type "about")
+        $hidden = hiddenCategory();
+        $items = array_values(array_filter(getItems(), function($it) use ($hidden){ return $it["cat"] !== $hidden; }));
         usort($items, function($a, $b){ return strcmp($b["file"], $a["file"]); });
 
         $output .= '<div id="sommaire">'.PHP_EOL;
@@ -121,6 +136,10 @@
         $watermarkFile = ROOT."watermark.html";
         if(file_exists($watermarkFile)){
             $output .= trim(file_get_contents($watermarkFile));
+        }
+        $versionFile = ROOT."version.md";
+        if(file_exists($versionFile)){
+            $output .= '<span id="watermark-version">v'.htmlspecialchars(trim(file_get_contents($versionFile))).'</span>';
         }
 
           //OVERLAY
@@ -288,7 +307,9 @@
       //si il existe un - dans le nom (YYYY-MM-DD-X | YYYY-MM-DD_X) c'est que c'est une date d'article
       //attention : les fichiers qui ne sont pas des articles ne doivent pas contenir de -
       if (strpos($itemDate, "-") === false) {
-        $str = displayItem(ROOT."editing/", trim($itemDate));
+        // fixed pages (ex: "about") live in editing/pages/ like the others, with a legacy fallback to editing/
+        $base = file_exists(ROOT."editing/pages/".trim($itemDate).".md") ? ROOT."editing/pages/" : ROOT."editing/";
+        $str = displayItem($base, trim($itemDate));
       }else {
         $str = displayItem(ROOT."editing/pages/", trim($itemDate));
       }

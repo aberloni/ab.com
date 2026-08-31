@@ -19,10 +19,12 @@
       
       if(strcmp($fileName,".") == 0) continue;
       if(strcmp($fileName,"#") == 0) continue;
-      if(strpos($fileName,"page") > -1) continue;
 
       //only source .md files, skip the generated .html counterpart
       if(!isset($info["extension"]) || strcasecmp($info["extension"], "md") != 0) continue;
+
+      //skip hidden-category pages (ex: "about") : not part of the activity stats
+      if(function_exists("isHiddenPage") && isHiddenPage($info["filename"])) continue;
 
       //echo "<br/> added ".$fileName;
       $list[] = $fileName;

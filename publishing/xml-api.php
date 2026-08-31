@@ -45,6 +45,9 @@
       $art = parseArticleFile(ROOT."editing/pages/".$dt.".md");
       if(!is_array($art)) continue;
 
+      // skip hidden-category pages (ex: "about") : not feed content
+      if($art["category"] === hiddenCategory()) continue;
+
       $link = 'http://www.andreberlemont.com/'.$dt;
       $title = htmlspecialchars($art["title"], ENT_XML1 | ENT_COMPAT, 'UTF-8');
 
