@@ -25,4 +25,4 @@ RewriteCond %{REQUEST_FILENAME} !-d
 #si pas index.html explicitement
 RewriteCond %{REQUEST_URI} !index\.html
 
-RewriteRule ^(.+)$ /index.html#$1 [QSA,L]
+RewriteRule ^(.+)$ /index.html [QSA,L]

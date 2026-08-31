@@ -41,8 +41,12 @@
       // nothing before ref date
       if($refDate > $fileDate) continue;
 
+      // skip articles with an invalid header (no html is generated for them)
+      $art = parseArticleFile(ROOT."editing/pages/".$dt.".md");
+      if(!is_array($art)) continue;
+
       $link = 'http://www.andreberlemont.com/'.$dt;
-      $title = htmlspecialchars(getItemHeader($dt), ENT_XML1 | ENT_COMPAT, 'UTF-8');
+      $title = htmlspecialchars($art["title"], ENT_XML1 | ENT_COMPAT, 'UTF-8');
 
       //date is the first 10 chars of the file name (YYYY-MM-DD), ignoring any -N suffix for same-day articles
       $articleDate = strtotime(substr($dt, 0, 10));

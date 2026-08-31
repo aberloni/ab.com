@@ -26,7 +26,8 @@
         $output = "";
 
         // PAGE
-        $output = '<html lang="en">'.PHP_EOL;
+        $output = '<!DOCTYPE html>'.PHP_EOL;
+        $output .= '<html lang="en">'.PHP_EOL;
 
         //HEADER
         $configHeader = $conf->{"header"};
@@ -70,6 +71,8 @@
         {
             $output .= '<script type="text/javascript" src="'.$line.'"></script>'.PHP_EOL;
         }
+        //local fallback if the jQuery CDN is unreachable
+        $output .= '<script type="text/javascript">window.jQuery || document.write(\'<script src="js/jquery-4.0.0.min.js"><\/script>\')</script>'.PHP_EOL;
 
           //GOOGLE
         $output .= html_googleAnalytics($configHeader->{"googleAnalytics"}).PHP_EOL;
@@ -86,7 +89,7 @@
 
         //SEARCH BOX
         $output .= '<div class="searchZone">';
-        $output .= '<input id="search" value="Search for articles here" />&nbsp;';
+        $output .= '<input id="search" value="Filter articles here" />&nbsp;';
         $output .= '</div>';
 
         //SOMMAIRE : liste plate de tout les articles, triée par date desc
@@ -163,26 +166,6 @@
     // TXT GENERATION CORE FUNCTIONS
     ///////////////
 
-    /* convert old pre-markdown legacy syntax to real markdown, before it reaches Parsedown */
-    function convertLegacySyntax($content)
-    {
-      //[code]...[/code] -> ``` fences (works whether inline or spanning multiple lines)
-      $content = str_replace("[code]", PHP_EOL."```".PHP_EOL, $content);
-      $content = str_replace("[/code]", PHP_EOL."```".PHP_EOL, $content);
-
-      //lines starting with | -> markdown subtitle heading
-      $lines = explode(PHP_EOL, $content);
-      foreach($lines as &$line)
-      {
-        if(strpos(ltrim($line), "|") === 0)
-        {
-          $line = "### ".ltrim(substr(ltrim($line), 1));
-        }
-      }
-
-      return implode(PHP_EOL, $lines);
-    }
-
     function solveSpecificPatternsOnLine($line, $date)
     {
       global $mediaUrl;
@@ -213,47 +196,71 @@
 
 
 
+    /* parse an article file.
+       format :
+         CATEGORY                <- mandatory
+         Article title           <- mandatory
+         keyword, keyword, ...    <- optional
+         (more header lines reserved for future use)
+         ---                     <- separator, marks the start of the body
+         markdown body...
+       returns ["category"=>, "title"=>, "keywords"=>, "body"=>]  or a string error. */
+    function parseArticleFile($fullPath)
+    {
+      if(!file_exists($fullPath)) return "file missing";
+
+      $lines = preg_split('/\r\n|\r|\n/', file_get_contents($fullPath));
+
+      $sep = -1;
+      foreach($lines as $i => $l){
+        if(trim($l) === "---"){ $sep = $i; break; }
+      }
+      if($sep < 0) return "missing '---' separator before the body";
+
+      $head = array();
+      for($i = 0; $i < $sep; $i++){
+        if(trim($lines[$i]) !== "") $head[] = trim($lines[$i]);
+      }
+      if(count($head) < 2) return "header needs CATEGORY then Title before '---', found ".count($head)." line".(count($head) == 1 ? "" : "s");
+
+      return array(
+        // category is lowercased so "DNS" / "dns" / "Dns" all match
+        "category" => function_exists('mb_strtolower') ? mb_strtolower($head[0], 'UTF-8') : strtolower($head[0]),
+        "title"    => $head[1],
+        "keywords" => isset($head[2]) ? $head[2] : "",
+        "body"     => implode("\n", array_slice($lines, $sep + 1)),
+      );
+    }
+
     /* génère le code html d'un article */
     function displayItem($path, $fileName)
     {
       $path = $path.$fileName.".md";
-      
-      if (!file_exists($path)) return "{API} I don't have ".$path;
 
-      //open file
-      $fileHandle = fopen($path, "r");
-      
-      //catch first line to get info on file : categorie <TAB> sous-categorie <TAB> titre
-      $line = fgets($fileHandle);
-      $headerInfo = explode("\t", trim($line));
-      $articleTitle = isset($headerInfo[2]) ? $headerInfo[2] : "";
-
-      //get all info
-      $content = "";
-      while ($buffer = fgets($fileHandle)) $content .= $buffer;
-      
-      //close file
-      fclose($fileHandle);
+      $art = parseArticleFile($path);
+      if(!is_array($art)) return "{API} ".$fileName." : ".$art;
 
       //markdown
-      $content = convertLegacySyntax($content);
       $pd = new Parsedown();
       $pd->setBreaksEnabled(true);
-      $content = $pd->text($content);
-
-      //list($category, $articleTitle) = explode(" ", $title);
+      $content = $pd->text($art["body"]);
 
       $output = "";
 
       $output .= '<div id="content-title">';
-      $output .= $articleTitle;
+      $output .= $art["title"];
       $output .= "</div>";
 
+      //keywords under the title
+      $kw = array_values(array_filter(array_map('trim', explode(",", $art["keywords"]))));
+      if(count($kw) > 0){
+        $output .= '<div id="content-keywords">';
+        foreach($kw as $k) $output .= '<span class="keyword">'.htmlspecialchars($k).'</span>';
+        $output .= '</div>';
+      }
+
       $output .= '<div id="content">';
-      //$output .= $content;
-
       $output .= solveSpecificPatternsOnLine($content, $fileName);
-
       $output .= '</div>';
 
       return $output;
@@ -319,13 +326,36 @@
 
 
 
+    /* true if the article header is properly set, else a string describing what's wrong */
+    function validateHeader($id){
+      $res = parseArticleFile(ROOT."editing/pages/".$id.".md");
+      return is_array($res) ? true : $res;
+    }
+
+    /* [ filename => reason ] for every article whose header is not properly set */
+    function getInvalidHeaders(){
+      $out = array();
+      if(!is_dir(ROOT."editing/pages/")) return $out;
+
+      foreach(scandir(ROOT."editing/pages/") as $f){
+        $info = pathinfo($f);
+        if(!isset($info["extension"]) || strcasecmp($info["extension"], "md") != 0) continue;
+        if(is_int(strpos($f, "#"))) continue;
+
+        $res = validateHeader($info["filename"]);
+        if($res !== true) $out[$info["filename"]] = $res;
+      }
+      ksort($out);
+      return $out;
+    }
+
     function getItems(){
       if(!is_dir(ROOT."editing/pages/")) return "";
 
       $path = ROOT."editing/pages/";
       $files = scandir($path);
       $all = array();
-      
+
       for($i = 0; $i < count($files); $i++){
         $f = $files[$i];
 
@@ -333,49 +363,24 @@
         //echo "<br/><br/>";print_r($info);
 
         if(is_dir($path.$info["filename"]))  continue;
-        
+
         //skip #
         if(is_int(strpos($f, "#"))) continue;
-        
+
         if(!isset($info["extension"]) || strcasecmp($info["extension"], "md") != 0) continue;
 
-        //echo"<br/><br/> OK";
-        
-        //header format: categorie <TAB> sous-categorie <TAB> titre
-        $header = getItemHeader($info["filename"]);
-        $headerInfo = explode("\t", $header);
+        //skip articles whose header is not properly set (listed separately by getInvalidHeaders)
+        $art = parseArticleFile($path.$info["filename"].".md");
+        if(!is_array($art)) continue;
 
-        $cat = isset($headerInfo[0]) ? trim($headerInfo[0]) : "";
-        $subcat = isset($headerInfo[1]) ? trim($headerInfo[1]) : "";
-        $title = isset($headerInfo[2]) ? trim($headerInfo[2]) : "";
-
-        $new = array("cat"=>$cat,"subcat"=>$subcat,"file"=>$info["filename"],"title"=>$title);
+        // "subcat" key kept : that's what the homepage badge / data-subcat filter use
+        $new = array("cat"=>$art["category"],"subcat"=>$art["category"],"file"=>$info["filename"],"title"=>$art["title"]);
 
         $all[] = $new;
       }
       return $all;
     }
 
-    /* param = date, retourne l'entete titre de l'article */
-    function getItemHeader($id){
-      $path = ROOT."editing/pages/".$id.".md";
-      $title = "";
-      
-      if(file_exists($path)){
-        $h = fopen($path, "r");
-        $buffer = fgets($h); // récup le titre
-        
-        $title = $buffer;
-        
-        fclose($h);
-      }
-      
-      //ce return créer des problème avec utf-8 sur les accents
-      //return htmlEntities(trim($title));
-      
-      return trim($title);
-    }
-    
   ?>
 
 

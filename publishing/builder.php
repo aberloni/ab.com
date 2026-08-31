@@ -50,6 +50,14 @@
     /// (uses the same buildArticle() as phanes.php's individual "Update" button)
     function generateArticles()
     {
+        // articles whose header is not properly set : skip generation + drop any stale html
+        $invalid = getInvalidHeaders();
+        $removed = [];
+        foreach($invalid as $file => $reason){
+            $html = ROOT."articles/".$file.".html";
+            if(file_exists($html)){ unlink($html); $removed[] = $file; }
+        }
+
         $items = getItems();
 
         $created = [];
@@ -67,16 +75,31 @@
 
         echo '<h1>Articles</h1>';
         echo '<div class="summary">';
-        echo count($items)." articles au total — ";
+        echo count($items)." articles valides — ";
         echo "<b>".count($created)."</b> créés, ";
         echo "<b>".count($updated)."</b> mis à jour, ";
         echo "<span class='muted'>".$unchangedCount." inchangés (ignorés)</span>";
+        if(count($removed) > 0) echo " — <span class='error'>".count($removed)." html supprimés (header invalide)</span>";
         echo '</div>';
 
         if(count($created) > 0 || count($updated) > 0){
             echo '<table><tr><th>Fichier</th><th>Statut</th></tr>';
             foreach($created as $date) echo '<tr><td>'.htmlspecialchars($date).'</td><td class="created">créé</td></tr>';
             foreach($updated as $date) echo '<tr><td>'.htmlspecialchars($date).'</td><td class="updated">mis à jour</td></tr>';
+            echo '</table>';
+        }
+
+        // HEADER TO FIX
+
+        echo '<h1>Headers à corriger ('.count($invalid).')</h1>';
+        if(count($invalid) === 0){
+            echo '<div class="summary">tous les headers sont valides</div>';
+        }else{
+            echo '<div class="summary">ces articles sont ignorés (pas de html généré) tant que leur header n\'est pas au format <b>CATEGORY&lt;TAB&gt;Title</b> + ligne de mots-clés</div>';
+            echo '<table><tr><th>Fichier</th><th>Problème</th></tr>';
+            foreach($invalid as $file => $reason){
+                echo '<tr><td>'.htmlspecialchars($file).'</td><td class="error">'.htmlspecialchars($reason).'</td></tr>';
+            }
             echo '</table>';
         }
 

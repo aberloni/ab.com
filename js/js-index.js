@@ -48,16 +48,16 @@ $(function(){
 
 function display_article(){
   var date = getFileDateFromUrl();
-  if(date.length <= 0) return;
+  if(!/^\d{4}-\d{2}-\d{2}(_\d+)?$/.test(date)) return;
 
   var path = "articles/"+date+".html";
-  //console.log(path);
 
   $.get(path,function(data){
     $("#overlay").html(data);
     openOverlay();
+  }).fail(function(){
+    console.error("article not found: "+path);
   });
-  
 }
 
 function setup_search(){
@@ -87,6 +87,7 @@ function setup_search(){
       $("#sommaire").addClass("show-years");
       clearSubcatFilter();
       $(".article-line").show();
+      $b.hide();
     }
   });
 
@@ -103,7 +104,7 @@ function setup_search(){
 /* default view : hide anything older than 6 months (still searchable) */
 function applyDefaultView(){
   clearSubcatFilter();
-  $("#time-travel").removeClass("active");
+  $("#time-travel").removeClass("active").show();
   $("#sommaire").removeClass("show-years");
 
   var d = new Date();
@@ -141,10 +142,8 @@ function filterArticles(val, reset){
 }
 
 function getFileDateFromUrl(){
-  var url = document.URL;
-  if(url[url.length] == "/") url = url.substring(0,url.length-2);
-  var data = url.split("/");
-  return data[data.length-1];
+  var path = location.pathname.replace(/\/+$/, ""); // drop trailing slash(es)
+  return path.split("/").pop();                     // last segment, no query/hash
 }
 
 function setup__interactivity(){
@@ -219,20 +218,15 @@ function openParentCategory(){
   Shadowbox.init();
 }
 
-var updateId = -1;
 function openOverlay(){
-  updateOverlay();
-
   //hide the homepage while reading an article
   $("#all").hide();
 
-  //back arrow (visible on mobile via css) to return to the homepage
-  if(!$("#overlay-back").length){
-    $('<button id="overlay-back" type="button" aria-label="back">←</button>')
-      .appendTo("body")
-      .click(function(){ hideOverlay(100); });
-  }
-  $("#overlay-back").show();
+  //back arrow next to the article title (#overlay is rebuilt by .html() each load)
+  $("#overlay-back").remove();
+  $('<button id="overlay-back" type="button" aria-label="back">←</button>')
+    .click(function(){ hideOverlay(100); })
+    .prependTo("#overlay");
 
   $("#overlay-bg").css("display", "block").addClass("fade-in");
 
@@ -240,44 +234,12 @@ function openOverlay(){
   void $("#overlay")[0].offsetWidth; // force reflow so the animation replays
   $("#overlay").addClass("article-in");
 
-  if(updateId < 0){
-    //permet de resize le fond noir par rapport au resize de l'user
-    updateId = setInterval(function(){ updateOverlay(); }, 200);
-  }
-
   $("#overlay-click").css("display", "block");
 }
 
-/* setup black overlay based on the size of the screen */
-function updateOverlay(){
-  var clickLayer = $("#overlay-click"); // zone transparente pour fermer l'article
-  var bg = $("#overlay-bg"); // zone sombre derrière
-  var overlay = $("#overlay"); // zone de texte
-  
-  //background layer to receive click to remove overlay
-  var winWidth = parseInt($(window).width());
-  //var winHeight = parseInt($(window).height());
-  var winHeight = parseInt($(document).height());
-  
-  if(getInternetExplorerVersion() >= 0){
-    winWidth = screen.width;
-    winHeight = screen.height;
-  }
-  
-  //alert(winWidth+", "+winHeight);
-  clickLayer.css("width", winWidth);
-  
-  var h = Math.max(parseInt(overlay.css("height")) + 75, winHeight);
-  clickLayer.css("height",h);
-  
-  //setup black background behind text
-  bg.css("width",parseInt(overlay.css("width")) + 50);
-  bg.css("height",h);
-  //bg.css("left", Math.max(0, (($(window).width() - $(this).outerWidth()) * 0.5) + $(window).scrollLeft()) + "px");
-  
-  //setup text zone
-  //overlay.css("left", Math.max(0, (($(window).width() - $(this).outerWidth()) * 0.5) + $(window).scrollLeft()) + "px");
-}
+/* the backing layers (#overlay-bg / #overlay-click) are sized purely by CSS
+   now (position:fixed). kept as a no-op because openParentCategory() calls it. */
+function updateOverlay(){}
 
 function hideOverlay(delay){
   $("#overlay-click").hide(delay);
@@ -287,13 +249,6 @@ function hideOverlay(delay){
   //restore the homepage
   $("#all").show();
   $("#overlay-back").hide();
-
-  //vire le process qui permet de resize le fond noir si l'user change la taille de son navigateur
-  if(updateId > -1){
-    //console.log("cleared");
-    clearInterval(updateId);
-    updateId = -1;
-  }
 }
 
 function setPalette(){
