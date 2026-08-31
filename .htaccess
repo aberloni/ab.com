@@ -14,15 +14,22 @@
 
 RewriteEngine On
 
+# page introuvable -> page "woops"
+ErrorDocument 404 /woops.html
+
 RewriteRule ^(temp)($|/) - [L]
 
-#si pas un fichier spécifique
-RewriteCond %{REQUEST_FILENAME} !-f
+# fichier ou dossier réel : servir tel quel
+RewriteCond %{REQUEST_FILENAME} -f [OR]
+RewriteCond %{REQUEST_FILENAME} -d
+RewriteRule ^ - [L]
 
-#si pas un dossier spécifique
-RewriteCond %{REQUEST_FILENAME} !-d
+# accueil
+RewriteRule ^$ /index.html [L]
 
-#si pas index.html explicitement
-RewriteCond %{REQUEST_URI} !index\.html
+# lien profond vers un article existant (/AAAA-MM-JJ ou /AAAA-MM-JJ_N) : charger la SPA
+RewriteCond %{DOCUMENT_ROOT}/articles/$1.html -f
+RewriteRule ^(\d{4}-\d{2}-\d{2}(?:_\d+)?)/?$ /index.html [QSA,L]
 
-RewriteRule ^(.+)$ /index.html [QSA,L]
+# tout le reste ne pointe sur rien : woops (404)
+RewriteRule ^ - [R=404,L]

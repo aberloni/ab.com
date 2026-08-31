@@ -36,9 +36,10 @@ $(function(){
   //default view : only articles from the last 6 months
   applyDefaultView();
 
-  //local dev only : quick link to the builder
+  //local dev only : quick links to the builder + editor
   if(/^(localhost|127\.0\.0\.1)$/.test(location.hostname)){
     $('<a id="build-link" href="publishing/builder.php">build</a>').appendTo("body");
+    $('<a id="edit-link" href="editing/phanes.php">phanes</a>').appendTo("body");
   }
 
   display_article();
