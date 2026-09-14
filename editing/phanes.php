@@ -515,11 +515,42 @@ function mdRender(src){
   var upd = function(){ pv.innerHTML = mdRender(ta.value); };
   ta.addEventListener("input", upd);
   ta.addEventListener("keydown", function(e){
-    if(e.key !== "Tab" || e.shiftKey) return;
+    if(e.key !== "Tab") return;
     e.preventDefault();
-    var s = ta.selectionStart, en = ta.selectionEnd, pad = "\t";
-    ta.value = ta.value.slice(0, s) + pad + ta.value.slice(en);
-    ta.selectionStart = ta.selectionEnd = s + pad.length;
+    var pad = "\t", v = ta.value, s = ta.selectionStart, en = ta.selectionEnd;
+    var lineStart = v.lastIndexOf("\n", s - 1) + 1;
+    var multi = v.slice(s, en).indexOf("\n") !== -1;
+
+    if(!multi && !e.shiftKey){
+      ta.value = v.slice(0, s) + pad + v.slice(en);
+      ta.selectionStart = ta.selectionEnd = s + pad.length;
+      upd();
+      return;
+    }
+
+    var blockEnd = v.indexOf("\n", en); if(blockEnd === -1) blockEnd = v.length;
+    var before = v.slice(0, lineStart), after = v.slice(blockEnd);
+    var lines = v.slice(lineStart, blockEnd).split("\n");
+    var cutFirst = 0, cutTotal = 0;
+
+    lines = lines.map(function(ln, i){
+      if(e.shiftKey){
+        var m = ln.match(/^(\t| {1,2})/), cut = m ? m[0].length : 0;
+        if(i === 0) cutFirst = cut;
+        cutTotal += cut;
+        return ln.slice(cut);
+      }
+      return pad + ln;
+    });
+
+    ta.value = before + lines.join("\n") + after;
+    if(e.shiftKey){
+      ta.selectionStart = Math.max(lineStart, s - cutFirst);
+      ta.selectionEnd = Math.max(ta.selectionStart, en - cutTotal);
+    } else {
+      ta.selectionStart = s + pad.length;
+      ta.selectionEnd = en + pad.length * lines.length;
+    }
     upd();
   });
   upd();

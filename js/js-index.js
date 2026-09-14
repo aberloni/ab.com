@@ -104,6 +104,16 @@ function setup_search(){
     }
   });
 
+  //start typing anywhere : grab the search box
+  $(document).on("keydown", function(e){
+    if(e.ctrlKey || e.metaKey || e.altKey) return;
+    if(!e.key || !/^[\wÀ-ÿ]$/.test(e.key)) return;
+    var t = (e.target.tagName || "").toUpperCase();
+    if(t === "INPUT" || t === "TEXTAREA" || e.target.isContentEditable) return;
+    if($("#overlay").is(":visible")) return;
+    $("#search").focus();
+  });
+
 }
 
 /* default view : hide anything older than 6 months (still searchable) */
