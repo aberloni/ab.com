@@ -1,5 +1,16 @@
 # Changelog
 
+## 2026-10-24
+
+- Phanes: "+ Ajouter des médias" upload button on top of the mosaic (multi-file, sanitized names, no overwrite).
+- Phanes: delete confirm shows how many articles use the media; preview paths now relative.
+- Phanes: backup button (bottom right) downloads a zip of all markdown pages.
+- Index: pinned "About me" line on top, from editing/pages/aboutme.md (built like any page, kept out of the dated list/rss).
+- Phanes: "About me" button (bottom right) opens aboutme.md for editing.
+- Watermark link now opens aboutme instead of about.
+- deploy.ps1: FTP upload of structure only (html/php/js/css), never articles/medias/pages; all settings at top of the script.
+- Builder: {{img}}/{[video]} escaped + url-encoded; img gets width/height + lazy; video mime by extension; legacy thumbnail code removed.
+
 ## 2026-08-31
 
 - Phanes: media catalog moved to a right-side overlay panel (book button next to "+"), thumbnails sorted by last edit.

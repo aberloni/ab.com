@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tasks</title>
+<style>
+  body { font-family: sans-serif; background: #fafafa; color: #222; margin: 0; padding: 24px 12px 48px; display: flex; justify-content: center; -webkit-tap-highlight-color: transparent; }
+  main { width: 100%; max-width: 420px; text-align: center; }
+  h1 { font-size: 1.4em; margin: 0 0 20px; }
+  h2 { font-size: 1em; margin: 24px 0 8px; color: #666; text-transform: uppercase; letter-spacing: .05em; }
+  form { display: flex; gap: 8px; margin-bottom: 20px; }
+  input { flex: 1; padding: 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; min-width: 0; }
+  #c { flex: 0 0 30%; }
+  button { padding: 8px 14px; font-size: 1em; border: 0; border-radius: 4px; background: #333; color: #fff; cursor: pointer; }
+  ul { list-style: none; margin: 0; padding: 6px; min-height: 40px; border: 1px dashed #ddd; border-radius: 4px; }
+  li { display: flex; align-items: center; justify-content: space-between; padding: 4px 4px 4px 0; margin-bottom: 6px; background: #fff; border: 1px solid #ddd; border-radius: 4px; user-select: none; -webkit-user-select: none; }
+  li:last-child { margin-bottom: 0; }
+  li.dragging { opacity: .6; box-shadow: 0 2px 8px rgba(0,0,0,.25); }
+  li i { font-style: normal; color: #aaa; padding: 10px 12px; cursor: grab; touch-action: none; }
+  li span { flex: 1; display: flex; text-align: left; }
+  li b { font-weight: bold; font-size: .8em; flex: 0 0 30%; box-sizing: border-box; padding-right: 10px; text-align: right; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; align-self: center; }
+  li em { font-style: normal; flex: 0 0 70%; box-sizing: border-box; padding-left: 10px; border-left: 1px solid #ccc; }
+  #ts { position: fixed; left: 10px; bottom: 6px; margin: 0; font-size: 11px; color: #bbb; }
+  #io { position: fixed; right: 10px; bottom: 6px; margin: 0; font-size: 11px; }
+  #io button { padding: 0 3px; font-size: 11px; background: none; color: #bbb; }
+  #io button:hover { color: #333; }
+  li button { background: none; color: #999; padding: 6px 12px; font-size: 1.4em; line-height: 1; }
+  li button:hover { color: #c00; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Tasks</h1>
+  <form id="f"><input id="c" placeholder="Context" autocomplete="off" list="cs"><datalist id="cs"></datalist><input id="i" placeholder="Label" autocomplete="off"><button>Add</button></form>
+  <h2>Active</h2>
+  <ul id="active"></ul>
+  <h2>Backlog</h2>
+  <ul id="backlog"></ul>
+  <p id="ts"></p>
+  <p id="io"><button id="m">import</button> <button id="x">export</button><input id="file" type="file" accept=".json,application/json" hidden></p>
+</main>
+<script>
+const i = document.getElementById('i'), c = document.getElementById('c'), main = document.querySelector('main');
+const lists = { active: document.getElementById('active'), backlog: document.getElementById('backlog') };
+let data = { active: [], backlog: [] };
+const norm = t => typeof t === 'string' ? { ctx: '', label: t } : t;
+try {
+  const raw = JSON.parse(localStorage.getItem('tasks'));
+  if (Array.isArray(raw)) data.active = raw.map(norm);
+  else if (raw) data = { active: (raw.active || []).map(norm), backlog: (raw.backlog || []).map(norm) };
+} catch (e) {}
+
+const ts = document.getElementById('ts');
+function stamp(t) { ts.textContent = t ? 'last change ' + new Date(+t).toLocaleString() : ''; }
+try { stamp(localStorage.getItem('tasks_ts')); } catch (e) {}
+
+function save() {
+  try {
+    const s = JSON.stringify(data);
+    if (s === localStorage.getItem('tasks')) return;
+    localStorage.setItem('tasks', s);
+    const t = Date.now();
+    localStorage.setItem('tasks_ts', t);
+    stamp(t);
+  } catch (e) {}
+}
+
+function render() {
+  const all = [...data.active, ...data.backlog];
+  document.getElementById('cs').replaceChildren(...[...new Set(all.map(t => t.ctx).filter(Boolean))].map(v => {
+    const o = document.createElement('option');
+    o.value = v;
+    return o;
+  }));
+  let n = 0;
+  for (const k in lists) {
+    lists[k].innerHTML = '';
+    data[k].forEach((t, j) => {
+      const li = document.createElement('li');
+      li.dataset.n = n++;
+      const s = document.createElement('span');
+      const b = document.createElement('b'); b.textContent = t.ctx;
+      const m = document.createElement('em'); m.textContent = t.label;
+      s.append(b, m);
+      const x = document.createElement('button');
+      x.textContent = '×';
+      x.onclick = () => { data[k].splice(j, 1); save(); render(); };
+      const h = document.createElement('i');
+      h.textContent = '☰';
+      li.append(h, s, x);
+      const move = e => {
+        const y = e.clientY;
+        let target = lists.active;
+        const rb = lists.backlog.getBoundingClientRect();
+        if (y >= rb.top - 20) target = lists.backlog;
+        const after = [...target.querySelectorAll('li:not(.dragging)')].find(el => {
+          const r = el.getBoundingClientRect();
+          return y < r.top + r.height / 2;
+        });
+        if (after ? li.nextSibling !== after || li.parentNode !== target : li.parentNode !== target || li.nextSibling) target.insertBefore(li, after || null);
+        if (y < 60) window.scrollBy(0, -8);
+        else if (y > innerHeight - 60) window.scrollBy(0, 8);
+      };
+      const drop = () => {
+        main.onpointermove = main.onpointerup = main.onpointercancel = null;
+        li.classList.remove('dragging');
+        for (const key in lists) data[key] = [...lists[key].children].map(el => all[+el.dataset.n]);
+        save(); render();
+      };
+      h.onpointerdown = e => {
+        e.preventDefault();
+        main.setPointerCapture(e.pointerId);
+        li.classList.add('dragging');
+        main.onpointermove = move;
+        main.onpointerup = main.onpointercancel = drop;
+      };
+      lists[k].appendChild(li);
+    });
+  }
+}
+
+document.getElementById('f').onsubmit = e => {
+  e.preventDefault();
+  const v = i.value.trim();
+  if (!v) return;
+  data.backlog.push({ ctx: c.value.trim(), label: v });
+  i.value = ''; c.value = '';
+  save(); render();
+};
+document.getElementById('x').onclick = () => {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' }));
+  a.download = 'tasks.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+};
+const file = document.getElementById('file');
+document.getElementById('m').onclick = () => file.click();
+file.onchange = async () => {
+  const f = file.files[0];
+  file.value = '';
+  if (!f) return;
+  try {
+    const raw = JSON.parse(await f.text());
+    const ok = t => t && typeof t.label === 'string';
+    const a = raw.active, b = raw.backlog;
+    if (!Array.isArray(a) || !Array.isArray(b) || ![...a, ...b].every(ok)) throw 0;
+    data = { active: a.map(t => ({ ctx: String(t.ctx || ''), label: t.label })), backlog: b.map(t => ({ ctx: String(t.ctx || ''), label: t.label })) };
+    save(); render();
+  } catch (e) { alert('Invalid tasks file'); }
+};
+render();
+</script>
+</body>
+</html>

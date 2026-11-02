@@ -10,6 +10,21 @@
   $file = isset($_GET["file"]) ? basename($_GET["file"]) : "";
   $message = "";
 
+  if($action === "backup"){
+    $tmp = tempnam(sys_get_temp_dir(), "bk");
+    $zip = new ZipArchive();
+    if($zip->open($tmp, ZipArchive::OVERWRITE) !== true) die("Zip impossible.");
+    foreach(glob($pagesDir."*.md") as $p) $zip->addFile($p, basename($p));
+    $zip->close();
+    while(ob_get_level()) ob_end_clean();
+    header("Content-Type: application/zip");
+    header("Content-Disposition: attachment; filename=\"articles-backup-".date("Y-m-d").".zip\"");
+    header("Content-Length: ".filesize($tmp));
+    readfile($tmp);
+    unlink($tmp);
+    exit;
+  }
+
   if($_SERVER["REQUEST_METHOD"] === "POST"){
     $postAction = $_POST["action"] ?? "save";
     $postFile = basename($_POST["file"] ?? "");
@@ -18,6 +33,28 @@
       loadPageItems($cacheFile, true);
       $message = "Liste des articles rafraîchie.";
       $action = "list";
+    } else if($postAction === "uploadmedia"){
+      $allowed = ["jpg","jpeg","png","gif","webp","svg","mp4","webm","ogg","mov"];
+      $ok = 0; $ko = [];
+      if(!is_dir($mediasDir)) mkdir($mediasDir, 0755, true);
+      $up = $_FILES["medias"] ?? null;
+      if($up && is_array($up["name"])){
+        foreach($up["name"] as $i => $orig){
+          if($up["error"][$i] === UPLOAD_ERR_NO_FILE) continue;
+          $ext  = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
+          $base = trim(preg_replace('/[^A-Za-z0-9_\-]+/', "-", pathinfo($orig, PATHINFO_FILENAME)), "-");
+          if($up["error"][$i] !== UPLOAD_ERR_OK || $base === "" || !in_array($ext, $allowed)){ $ko[] = $orig; continue; }
+          $name = $base.".".$ext; $n = 2;
+          while(file_exists($mediasDir.$name)) $name = $base."-".($n++).".".$ext;
+          if(move_uploaded_file($up["tmp_name"][$i], $mediasDir.$name)) $ok++; else $ko[] = $orig;
+        }
+      }
+      $message = $ok." média(s) ajouté(s)".($ko ? " — refusé : ".implode(", ", $ko) : "").".";
+      if($postFile !== "" && preg_match('/^[A-Za-z0-9_\-]+$/', $postFile) && is_file($pagesDir.$postFile.".md")){
+        $file = $postFile; $action = "edit";
+      } else {
+        $action = "list";
+      }
     } else if($postAction === "deletemedia"){
       $mediaName = basename($_POST["media"] ?? "");
       if($mediaName !== "" && strpos($mediaName, "..") === false && is_file($mediasDir.$mediaName)){
@@ -116,6 +153,17 @@
       ];
     }
     usort($medias, function($a, $b){ return $b["mtime"] - $a["mtime"]; });
+  }
+
+  // number of articles referencing each media (warn before deleting a used one)
+  $mediaUsage = [];
+  if($medias){
+    $srcs = [];
+    foreach(glob($pagesDir."*.md") as $p) $srcs[] = file_get_contents($p);
+    $all = implode("\n", $srcs);
+    foreach($medias as $m){
+      $mediaUsage[$m["file"]] = substr_count($all, "{{".$m["file"]."}}") + substr_count($all, "{[".$m["file"]."]}");
+    }
   }
 
   function humanSize($b){
@@ -399,6 +447,8 @@ Contenu ici...</textarea><br>
 </div>
 
 <div class="fab-stack">
+  <a href="phanes.php?action=edit&amp;file=aboutme" class="fab secondary" title="Éditer About me">&#128100;</a>
+  <a href="phanes.php?action=backup" class="fab secondary" title="Sauvegarde (zip des .md)">&#128190;</a>
   <button type="button" class="fab secondary" title="Catalogue médias" onclick="toggleCatalog()">&#128366;</button>
   <a href="phanes.php?action=new" class="fab" title="Nouvel article">+</a>
 </div>
@@ -407,6 +457,12 @@ Contenu ici...</textarea><br>
 <aside class="catalog" id="catalog">
   <h2><?php echo count($medias); ?> médias <button type="button" class="close" onclick="toggleCatalog(false)" title="Fermer">×</button></h2>
   <div class="catalog-body">
+    <form method="post" enctype="multipart/form-data" id="uploadForm" style="margin:12px 12px 0;">
+      <input type="hidden" name="action" value="uploadmedia">
+      <input type="hidden" name="file" value="<?php echo ($action === "edit") ? htmlspecialchars($file) : ""; ?>">
+      <input type="file" name="medias[]" id="uploadInput" multiple accept="image/*,video/*" style="display:none" onchange="this.form.submit()">
+      <button type="button" onclick="document.getElementById('uploadInput').click()" style="width:100%;margin:0;">+ Ajouter des médias</button>
+    </form>
     <div class="media-grid">
     <?php foreach($medias as $m):
       $isVideo = in_array($m["ext"], ["mp4","webm","ogg","mov"]);
@@ -414,12 +470,12 @@ Contenu ici...</textarea><br>
     ?>
       <div class="media-cell" title="<?php echo htmlspecialchars($m["file"])." — ".humanSize($m["size"]); ?>" onclick="insertMedia('<?php echo $jsName; ?>', <?php echo $isVideo ? "true" : "false"; ?>)">
         <?php if($m["img"]): ?>
-          <img src="/articles/medias/<?php echo rawurlencode($m["file"]); ?>" loading="lazy" alt="">
+          <img src="../articles/medias/<?php echo rawurlencode($m["file"]); ?>" loading="lazy" alt="">
         <?php else: ?>
           <div class="ph"><?php echo htmlspecialchars($m["ext"]); ?></div>
         <?php endif; ?>
         <div class="name"><?php echo htmlspecialchars($m["file"]); ?></div>
-        <form method="post" class="media-del" onclick="event.stopPropagation();" onsubmit="return confirm('Supprimer <?php echo $jsName; ?> ?');">
+        <form method="post" class="media-del" onclick="event.stopPropagation();" onsubmit="return confirm('Supprimer <?php echo $jsName; ?><?php echo !empty($mediaUsage[$m["file"]]) ? " (utilisé ".$mediaUsage[$m["file"]]."x dans les articles)" : ""; ?> ?');">
           <input type="hidden" name="action" value="deletemedia">
           <input type="hidden" name="media" value="<?php echo htmlspecialchars($m["file"]); ?>">
           <input type="hidden" name="file" value="<?php echo ($action === "edit") ? htmlspecialchars($file) : ""; ?>">
@@ -466,8 +522,8 @@ function mdEsc(s){ return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/
 function mdMedia(f){
   f = f.trim();
   if(/^(https?:)?\//.test(f)) return f;
-  if(/^medias\//.test(f)) return "/articles/" + f;
-  return "/articles/medias/" + f;
+  if(/^medias\//.test(f)) return "../articles/" + encodeURI(f);
+  return "../articles/medias/" + encodeURIComponent(f);
 }
 function mdInline(s){
   s = mdEsc(s);

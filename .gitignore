@@ -23,3 +23,4 @@ articles*
 Dockerfile
 docker-compose.yml
 rss.xml
+deploy.ps1

@@ -108,10 +108,19 @@
 
         //SOMMAIRE : liste plate de tout les articles, triée par date desc (hors catégorie masquée type "about")
         $hidden = hiddenCategory();
-        $items = array_values(array_filter(getItems(), function($it) use ($hidden){ return $it["cat"] !== $hidden; }));
+        $pinnedId = "aboutme"; // editing/pages/aboutme.md : pinned on top of the list, never part of the dated list
+        $items = array_values(array_filter(getItems(), function($it) use ($hidden, $pinnedId){ return $it["cat"] !== $hidden && $it["file"] !== $pinnedId; }));
         usort($items, function($a, $b){ return strcmp($b["file"], $a["file"]); });
 
         $output .= '<div id="sommaire">'.PHP_EOL;
+
+        $pinned = parseArticleFile(ROOT."editing/pages/".$pinnedId.".md");
+        if(is_array($pinned)){
+            $output .= '<a href="'.$pinnedId.'" class="article-line pinned">';
+            $output .= '<span class="pin">&#128204;</span>';
+            $output .= '<span class="title">'.htmlspecialchars($pinned["title"]).'</span>';
+            $output .= '</a>'.PHP_EOL;
+        }
         $currentYear = null;
         foreach($items as $item){
             $year = substr($item["file"], 0, 4);
@@ -187,7 +196,7 @@
 
     function solveSpecificPatternsOnLine($line, $date)
     {
-      global $mediaUrl;
+      global $mediaUrl, $mediaPath;
 
       //text to clickable link (not starting with [ and only starting with http...)
       //$line = preg_replace("/([^\[])(http(s)?:\/\/)([^\s\)\]])+/", '<a href="$0" target="_blank">$0</a>', $line);
@@ -201,11 +210,24 @@
       //$line = preg_replace("/\[([^\]]+)\]\(([^\)]+)\)/",'<a href="$2" target="_blank">$1</a>', $line);
 
       //replace {{file.ext}} to <img>
-      $line = preg_replace("/\{\{([^}]+)\}\}/", '<img src="'.$mediaUrl.'$1" alt="$1" onerror="mediaFail(this)" />', $line);
+      //(name is escaped, url-encoded, and sized from the file when it exists)
+      $line = preg_replace_callback("/\{\{([^}]+)\}\}/", function($m) use ($mediaUrl, $mediaPath){
+        $name = trim($m[1]);
+        $esc  = htmlspecialchars($name, ENT_QUOTES);
+        $dim  = "";
+        $file = $mediaPath.basename($name);
+        if(is_file($file) && ($sz = @getimagesize($file))) $dim = ' width="'.$sz[0].'" height="'.$sz[1].'"';
+        return '<img src="'.$mediaUrl.rawurlencode($name).'" alt="'.$esc.'"'.$dim.' loading="lazy" onerror="mediaFail(this)" />';
+      }, $line);
 
-      //replace [[]] to <video>
-      $replacement = '<video width="640" height="360" controls onerror="mediaFail(this)" data-media="$1"><source src="'.$mediaUrl.'$1" type="video/mp4">Your browser does not support the video tag.</video>';
-      $line = preg_replace("/\{\[([^]]+)\]\}/", $replacement, $line);
+      //replace {[file.ext]} to <video> (mime from extension)
+      $line = preg_replace_callback("/\{\[([^\]]+)\]\}/", function($m) use ($mediaUrl){
+        $name = trim($m[1]);
+        $esc  = htmlspecialchars($name, ENT_QUOTES);
+        $types = ["mp4"=>"video/mp4", "webm"=>"video/webm", "ogg"=>"video/ogg", "mov"=>"video/mp4"];
+        $type = $types[strtolower(pathinfo($name, PATHINFO_EXTENSION))] ?? "video/mp4";
+        return '<video controls preload="metadata" style="max-width:100%;height:auto" onerror="mediaFail(this)" data-media="'.$esc.'"><source src="'.$mediaUrl.rawurlencode($name).'" type="'.$type.'">Your browser does not support the video tag.</video>';
+      }, $line);
       
       return $line;
     }
@@ -467,149 +489,6 @@
       $output .= " ".substr($line, $pos, strlen($line) - $pos);
 
       return $output;
-    }
-
-    function getSizeString($url, $limitX = 200, $limitY = 150)
-    {
-      $dim = getimagesize($url);
-      $width = $dim[0];
-      $height = $dim[1];
-      
-      $ratioX = ($limitX / $width);
-      $widthX = $width * $ratioX;
-      $heightX = $height * $ratioX;
-      
-      if($widthX <= $limitX && $heightX <= $limitY){
-        return "width=".intval($widthX)." height=".intval($heightX);
-      }
-      
-      $ratioY = ($limitY / $height);
-      $widthY = $width * $ratioY;
-      $heightY = $height * $ratioY;
-      
-      if($widthY <= $limitX && $heightY <= $limitY){
-        return "width=".intval($widthY)." height=".intval($heightY);
-      }
-      
-      return "";
-    }
-    
-    function generateList($path)
-    {
-      $ext = array("png", "jpg");
-      $list = array();
-      
-      //stop si c'est pas un dossier
-      if (!is_dir($path)) return array();
-      
-      $files = scandir($path);
-      
-      foreach($files as $file) {
-        if(is_dir($file)) continue;
-        $info = pathinfo($file);
-        if(!isset($info["extension"]))  continue;
-        
-        //take only pics
-        $filepath = strtolower($file);
-        
-        //png / jpg ?
-        if(in_array($info["extension"], $ext)){
-          $list[] = $filepath;
-          //echo $file."<br />";
-        }
-      }
-      
-      return $list;
-    }
-    
-    function getScreenshots($id) {
-      //create thumbs
-      global $mediaPath;
-      $path = $mediaPath.$id."/";
-      $thumbs = $mediaPath.$id."/thumbs/";
-
-      //echo $path." , ".$thumbs;
-      createThumbs($path,$thumbs, 200);
-      
-      $list = generateList($mediaPath.$id);
-      
-      $realList = $list;
-      
-      return $realList;
-    }
-    
-    function createThumbs( $pathToImages, $pathToThumbs, $thumbWidth ) 
-    {
-      //si pas de dossier avec des images ...
-      if (!is_dir($pathToImages)) return;
-      
-      //créer le thumbs/
-      if(!is_dir($pathToThumbs))  mkdir($pathToThumbs);
-      
-      $files = scandir($pathToImages);
-      foreach($files as $file){
-        if(is_dir($file)) continue;
-        
-        // parse path for the extension
-        $info = pathinfo($file);
-        //$fname = $info["filename"].".".$info["extension"];
-        $fname = $info["basename"];
-        $filePath = $pathToImages.$fname;
-        
-        //dossier ? pas d'extension ? ... zap
-        if(!isset($info["extension"]))  continue;
-        
-        $exts = array("jpg", "png");
-        foreach($exts as $ext) {
-          
-          if ( strtolower($info['extension']) == $ext ) 
-          {
-            //print_r($info);
-
-            $min = $pathToThumbs."m_".$fname;
-            //echo "<br/>\nmin ? ".$min;
-            if(file_exists($min)) continue;
-
-            // load image and get image size
-            if(strpos($ext, "png") !== false){
-
-              try{
-                $img = imagecreatefrompng($filePath);
-              }catch(Exception $e){
-                die("PNG Image creation error");
-              }
-              
-            }else{
-
-              try{
-                $img = imagecreatefromjpeg($filePath);
-              }catch(Exception $e){
-                die("JPG Image creation error");
-              }
-              
-            }
-            
-            $width = imagesx( $img );
-            $height = imagesy( $img );
-            
-            // calculate thumbnail size
-            $new_width = $thumbWidth;
-            $new_height = floor( $height * ( $thumbWidth / $width ) );
-            
-            // create a new temporary image
-            $tmp_img = imagecreatetruecolor( $new_width, $new_height );
-            
-            // copy and resize old image into new image 
-            imagecopyresized( $tmp_img, $img, 0, 0, 0, 0, $new_width, $new_height, $width, $height );
-
-            // save thumbnail into a file
-            imagejpeg( $tmp_img, "{$pathToThumbs}m_{$fname}");
-            imagedestroy($tmp_img);
-          }
-          
-        }
-        
-      }
     }
   ?>
 
